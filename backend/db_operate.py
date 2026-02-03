@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # @Author: Info Lite
 # @Desc: 数据库操作模块 - MySQL+Elasticsearch 增删改查、表/索引初始化
+import time
 import pymysql
 from elasticsearch import Elasticsearch
 from elasticsearch.helpers import bulk
@@ -196,7 +197,7 @@ def insert_asset_to_es(es, asset_list, index_name="cyberscan_asset"):
 
 def query_asset_from_db(ip, mysql_conn, mysql_cursor, es, scan_expire_time, index_name="cyberscan_asset"):
     """
-    从数据库查询资产数据 - 优先查ES（检索效率高），并校验扫描有效期
+    从数据库查询资产数据 - 优先查ES（检索效率高），并严格校验扫描有效期
     :param ip: 目标IP
     :param mysql_conn: MySQL连接
     :param mysql_cursor: MySQL游标
@@ -206,27 +207,35 @@ def query_asset_from_db(ip, mysql_conn, mysql_cursor, es, scan_expire_time, inde
     :return: 字典 - {is_valid: 是否有效, data: 资产数据列表}
     """
     try:
-        # 1. ES精准查询该IP的所有资产
+        # 1. ES精准查询该IP的所有资产（term查询确保完全匹配IP）
         es_query = {
             "query": {
                 "term": {
-                    "ip": ip
+                    "ip": ip  # 精准匹配，避免模糊查询导致的错误结果
                 }
             }
         }
         es_result = es.search(index=index_name, body=es_query, size=100)
-        asset_list = [hit["_source"] for hit in es_result["hits"]["hits"]]
-        if not asset_list:
+        # 提取原始资产数据，确保非空
+        raw_asset_list = [hit["_source"] for hit in es_result["hits"]["hits"] if hit.get("_source")]
+        if not raw_asset_list:
             return {"is_valid": False, "data": []}
         
-        # 2. 校验扫描有效期（取最新的扫描时间戳）
-        latest_scan_time = max([asset["scan_time"] for asset in asset_list])
+        # 2. 校验扫描有效期 + 过滤过期数据（核心修复点）
         current_time = int(time.time())
-        if (current_time - latest_scan_time) > scan_expire_time:
+        # 过滤出：扫描时间戳 + 有效期 > 当前时间 的有效数据
+        valid_asset_list = [
+            asset for asset in raw_asset_list
+            if (asset.get("scan_time", 0) + scan_expire_time) > current_time
+        ]
+        
+        # 3. 无有效数据则返回False，有则返回有效数据
+        if not valid_asset_list:
             return {"is_valid": False, "data": []}
         
-        # 3. 数据有效，返回结果
-        return {"is_valid": True, "data": asset_list}
+        # 4. 数据有效，按端口升序排序后返回（优化体验）
+        valid_asset_list.sort(key=lambda x: x["port"])
+        return {"is_valid": True, "data": valid_asset_list}
     except Exception as e:
         print(f"数据库查询失败: {str(e)}")
         return {"is_valid": False, "data": []}
