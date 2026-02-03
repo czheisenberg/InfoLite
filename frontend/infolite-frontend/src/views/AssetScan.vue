@@ -3,7 +3,7 @@
     <!-- 页面头部 -->
     <div class="page-header">
       <h1 class="page-title">InfoLite 网络资产扫描平台</h1>
-      <p class="page-desc">支持IP端口探测、组件指纹识别，首次扫描自动入库，二次查询秒返回</p>
+      <!-- <p class="page-desc">支持IP端口探测、组件指纹识别，首次扫描自动入库，二次查询秒返回</p> -->
 
       <el-button 
         icon="Moon" 
