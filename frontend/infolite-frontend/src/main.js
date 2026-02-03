@@ -5,6 +5,8 @@ import router from './router'
 // 引入Element Plus
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
+// 👇 新增：引入Element Plus暗黑模式样式（核心）
+import 'element-plus/theme-chalk/dark/css-vars.css'
 // 引入Element Plus所有图标
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 // 引入axios（后续封装，先全局挂载）

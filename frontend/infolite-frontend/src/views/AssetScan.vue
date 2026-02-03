@@ -4,6 +4,16 @@
     <div class="page-header">
       <h1 class="page-title">InfoLite 网络资产扫描平台</h1>
       <p class="page-desc">支持IP端口探测、组件指纹识别，首次扫描自动入库，二次查询秒返回</p>
+
+      <el-button 
+        icon="Moon" 
+        circle 
+        size="large" 
+        class="theme-toggle-btn"
+        @click="toggleTheme"
+        :icon="theme === 'light' ? 'Moon' : 'Sunny'"
+        title="切换主题"
+      />
     </div>
 
     <!-- 扫描表单 -->
@@ -67,6 +77,7 @@
               <el-tag type="success">{{ scope.row.status }}</el-tag>
             </template>
           </el-table-column>
+          <el-table-column prop="banner" label="Banner" align="center" width="100" />
           <el-table-column prop="fingerprint" label="组件指纹" align="center">
             <template #default="scope">
               <span v-if="scope.row.fingerprint.length > 0">
@@ -126,6 +137,11 @@ import { ref, reactive, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 // 引入封装的axios请求
 import request from '../utils/request'
+
+// 主题
+import { inject } from 'vue'
+const theme = inject('theme')
+const toggleTheme = inject('toggleTheme')
 
 // 扫描表单数据
 const scanForm = reactive({
@@ -210,30 +226,45 @@ const showDetail = (row) => {
 </script>
 
 <style scoped>
-/* 页面整体样式 */
+/* 页面整体样式：替换为CSS变量 👇 */
 .asset-scan-page {
   max-width: 1400px;
   margin: 0 auto;
   padding: 20px;
-  background-color: #f5f7fa;
+  background-color: var(--bg-main);
   min-height: 100vh;
 }
 
-/* 页面头部 */
+/* 页面头部：新增flex布局，容纳切换按钮 */
 .page-header {
-  text-align: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-align: left;
   margin-bottom: 30px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border-color);
+}
+.header-left {
+  flex: 1;
 }
 .page-title {
   font-size: 28px;
-  color: #1f2937;
+  color: var(--text-primary);
   margin: 0 0 10px 0;
   font-weight: 600;
 }
 .page-desc {
   font-size: 16px;
-  color: #6b7280;
+  color: var(--text-secondary);
   margin: 0;
+}
+/* 主题切换按钮样式 */
+.theme-toggle-btn {
+  margin-left: 20px;
+  --el-button-bg-color: var(--bg-card);
+  --el-button-text-color: var(--text-primary);
+  --el-button-hover-bg-color: var(--hover-color);
 }
 
 /* 扫描表单 */
@@ -253,7 +284,7 @@ const showDetail = (row) => {
 }
 .result-header h3 {
   font-size: 18px;
-  color: #1f2937;
+  color: var(--text-primary);
   margin: 0;
   display: flex;
   align-items: center;
@@ -261,7 +292,7 @@ const showDetail = (row) => {
 }
 .result-header p {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--text-secondary);
   margin: 0;
 }
 
@@ -280,6 +311,16 @@ const showDetail = (row) => {
     flex-direction: column;
     align-items: flex-start;
     gap: 5px;
+  }
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+    text-align: left;
+  }
+  .theme-toggle-btn {
+    align-self: flex-end;
+    margin-left: 0;
   }
 }
 </style>
