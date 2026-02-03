@@ -1,0 +1,84 @@
+version: '3.8'
+# 所有服务仅本地访问，端口映射仅绑定127.0.0.1
+services:
+  # MySQL 8.0（存储核心元数据、扫描记录）
+  mysql:
+    image: mysql:8.0
+    container_name: infolite-mysql
+    restart: always
+    ports:
+      - "127.0.0.1:3306:3306" # 仅本地127.0.0.1可访问
+    environment:
+      MYSQL_ROOT_PASSWORD: infolite@123 # 数据库密码，自行修改（建议含特殊字符）
+      MYSQL_DATABASE: infolite_db        # 初始化数据库，无需手动创建
+      MYSQL_CHARSET: utf8mb4
+      MYSQL_COLLATION: utf8mb4_unicode_ci
+    volumes:
+      - mysql-data:/var/lib/mysql # 数据持久化，容器重启数据不丢失
+    networks:
+      - infolite-network
+    # 限制容器资源
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # Redis 7.0（缓存、任务队列）
+  redis:
+    image: redis:7.0
+    container_name: infolite-redis
+    restart: always
+    ports:
+      - "127.0.0.1:6379:6379" # 仅本地127.0.0.1可访问
+    command: redis-server --requirepass infolite@Redis123 # 配置密码，自行修改
+    volumes:
+      - redis-data:/data
+    networks:
+      - infolite-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.2'
+          memory: 256M
+
+  # Elasticsearch 8.x（核心检索，适配Python客户端）
+  elasticsearch:
+    image: elasticsearch:8.11.0
+    container_name: infolite-es
+    restart: always
+    ports:
+      - "127.0.0.1:9200:9200"
+      - "127.0.0.1:9300:9300"
+    environment:
+      - discovery.type=single-node  # 单节点模式（开发必备）
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g  # JVM内存1G，解决启动内存不足
+      - xpack.security.enabled=false  # 关闭安全认证（开发环境）
+      - bootstrap.memory_lock=true  # 锁定内存，提升稳定性
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    networks:
+      - infolite-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G  # 容器总内存2G，满足ES运行要求
+    ulimits:  # 放宽系统权限，解决启动权限报错
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65535
+        hard: 65535
+        
+# 自定义网络，容器间互通，与主机隔离
+networks:
+  infolite-network:
+    driver: bridge
+
+# 数据卷，持久化存储，容器删除数据不丢失
+volumes:
+  mysql-data:
+  redis-data:
+  es-data:

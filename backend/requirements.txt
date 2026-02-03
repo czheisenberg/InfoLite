@@ -1,0 +1,17 @@
+# 基础网络探测
+requests==2.31.0
+aiohttp==3.13.3
+asyncio==3.4.3
+# 数据库操作
+pymysql==1.1.0
+redis==5.0.1
+elasticsearch==8.11.0
+# 指纹识别/数据处理
+beautifulsoup4==4.12.2
+lxml==6.0.2
+# 后端API（FastAPI，轻量高效）
+fastapi==0.104.1
+uvicorn==0.24.0.post1
+# 其他工具
+python-dotenv==1.0.0 # 环境变量管理，不硬编码密码
+cryptography==42.0.5
