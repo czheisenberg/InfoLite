@@ -24,7 +24,7 @@ onMounted(() => {
 watch(theme, (newVal) => {
   document.documentElement.className = newVal
   localStorage.setItem('infolite-theme', newVal)
-}, { immediate: true })
+})
 
 // 提供主题切换方法，供子组件调用（通过provide/inject）
 import { provide } from 'vue'
