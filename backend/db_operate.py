@@ -240,6 +240,89 @@ def query_asset_from_db(ip, mysql_conn, mysql_cursor, es, scan_expire_time, inde
         print(f"数据库查询失败: {str(e)}")
         return {"is_valid": False, "data": []}
 
+def create_mysql_user_table(conn, cursor):
+    """
+    创建MySQL用户表 - 若表不存在则创建，存在则不操作
+    :param conn: MySQL连接对象
+    :param cursor: MySQL游标对象
+    :return: None
+    """
+    create_sql = """
+    CREATE TABLE IF NOT EXISTS user (
+        id INT AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID',
+        username VARCHAR(50) NOT NULL COMMENT '用户名',
+        password VARCHAR(255) NOT NULL COMMENT '密码（加密存储）',
+        create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+        last_login_time TIMESTAMP NULL COMMENT '最后登录时间',
+        UNIQUE KEY uk_username (username)  # 唯一键：用户名，避免重复
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
+    """
+    try:
+        cursor.execute(create_sql)
+        conn.commit()
+        print("MySQL用户表初始化成功（存在则跳过）")
+    except Exception as e:
+        conn.rollback()
+        raise Exception(f"创建MySQL用户表失败: {str(e)}")
+
+def insert_user(conn, cursor, username, password):
+    """
+    插入用户数据到MySQL
+    :param conn: MySQL连接对象
+    :param cursor: MySQL游标对象
+    :param username: 用户名
+    :param password: 密码（已加密）
+    :return: 是否成功
+    """
+    insert_sql = """
+    INSERT INTO user (username, password)
+    VALUES (%s, %s)
+    """
+    try:
+        cursor.execute(insert_sql, (username, password))
+        conn.commit()
+        print(f"MySQL插入用户成功: {username}")
+        return True
+    except Exception as e:
+        conn.rollback()
+        print(f"MySQL插入用户失败: {str(e)}")
+        return False
+
+def query_user(conn, cursor, username):
+    """
+    根据用户名查询用户
+    :param conn: MySQL连接对象
+    :param cursor: MySQL游标对象
+    :param username: 用户名
+    :return: 用户信息字典，不存在返回None
+    """
+    query_sql = "SELECT * FROM user WHERE username = %s"
+    try:
+        cursor.execute(query_sql, (username,))
+        result = cursor.fetchone()
+        return result
+    except Exception as e:
+        print(f"MySQL查询用户失败: {str(e)}")
+        return None
+
+def update_user_login_time(conn, cursor, user_id):
+    """
+    更新用户最后登录时间
+    :param conn: MySQL连接对象
+    :param cursor: MySQL游标对象
+    :param user_id: 用户ID
+    :return: 是否成功
+    """
+    update_sql = "UPDATE user SET last_login_time = CURRENT_TIMESTAMP WHERE id = %s"
+    try:
+        cursor.execute(update_sql, (user_id,))
+        conn.commit()
+        return True
+    except Exception as e:
+        conn.rollback()
+        print(f"MySQL更新用户登录时间失败: {str(e)}")
+        return False
+
 def close_db_conn(mysql_conn, mysql_cursor, es):
     """
     关闭数据库连接 - 避免连接泄漏

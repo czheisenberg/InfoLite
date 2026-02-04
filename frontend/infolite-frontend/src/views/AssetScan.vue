@@ -4,13 +4,25 @@
     <div class="page-header">
       <h1 class="page-title">InfoLite 网络资产扫描平台</h1>
 
-      <button 
-        class="theme-toggle-btn"
-        @click="toggleTheme"
-        title="切换主题"
-      >
-        {{ theme === 'light' ? '🌙' : '☀️' }}
-      </button>
+      <div class="header-actions">
+        <span class="user-info" v-if="username">
+          {{ username }}
+        </span>
+        <button 
+          class="btn-secondary" 
+          @click="handleLogout"
+          title="退出登录"
+        >
+          退出
+        </button>
+        <button 
+          class="theme-toggle-btn"
+          @click="toggleTheme"
+          title="切换主题"
+        >
+          {{ theme === 'light' ? '🌙' : '☀️' }}
+        </button>
+      </div>
     </div>
 
     
@@ -161,15 +173,31 @@
 
 <script setup>
 import { ref, reactive, computed } from 'vue'
-// 引入封装的axios请求
-import request from '../utils/request'
+// 引入封装的API接口
+import { queryAsset, getAssetDetail, getAssetList } from '../api/asset'
 // 引入Pixelium Design的Message组件
 import { Message } from '@pixelium/web-vue/es'
+const $message = Message
 
 // 主题
-import { inject } from 'vue'
+import { inject, onMounted } from 'vue'
 const theme = inject('theme')
 const toggleTheme = inject('toggleTheme')
+
+// 用户信息
+const username = ref('')
+
+// 初始化用户信息
+onMounted(() => {
+  username.value = localStorage.getItem('username') || ''
+})
+
+// 处理登出
+const handleLogout = () => {
+  localStorage.removeItem('token')
+  localStorage.removeItem('username')
+  window.location.href = '/login'
+}
 
 // 扫描表单数据
 const scanForm = reactive({
@@ -204,20 +232,19 @@ const handleQuery = async () => {
   }
   if (!validateIp(scanForm.ip)) {
     $message['info']('请输入正确的IP地址（如127.0.0.1）')
-
     return
   }
 
   try {
     // 调用后端接口，refresh=false（默认不刷新）
-    const res = await request.get('/asset/query', {
-      params: { ip: scanForm.ip, refresh: false }
-    })
-    tableData.value = res.data
-    scanType.value = res.scan_type
-    console.log("res: ", res);
-    // 提示成功
-    $message['success'](res.msg)
+    const res = await queryAsset({ ip: scanForm.ip })
+    if (res.code === 200) {
+      tableData.value = res.data
+      // 提示成功
+      $message['success']('扫描/查询成功')
+    } else {
+      $message['info'](res.msg)
+    }
   } catch (error) {
     console.error('查询失败：', error)
     tableData.value = []
@@ -229,22 +256,31 @@ const handleQuery = async () => {
 
 // 处理刷新扫描（强制重新扫描）
 const handleRefresh = async () => {
-  if (confirm('确定要刷新扫描该IP吗？会重新执行端口探测并覆盖旧数据')) {
-    try {
-      // 调用后端接口，refresh=true（强制刷新）
-      const res = await request.get('/asset/query', {
-        params: { ip: scanForm.ip, refresh: true }
-      })
+  if (!scanForm.ip) {
+    $message['info']('请输入IP地址')
+    return
+  }
+  
+  if (!validateIp(scanForm.ip)) {
+    $message['info']('请输入正确的IP地址（如127.0.0.1）')
+    return
+  }
+  
+  try {
+    // 调用后端接口，refresh=true（强制刷新）
+    const res = await queryAsset({ ip: scanForm.ip, refresh: true })
+    if (res.code === 200) {
       tableData.value = res.data
-      scanType.value = res.scan_type
       // 提示成功
-      $message['success'](res.msg)
-    } catch (error) {
-      console.error('刷新扫描失败：', error)
-      // 显示具体的错误信息
-      const errorMsg = error.response?.data?.msg || '刷新扫描失败'
-      $message['error'](errorMsg)
+      $message['success']('刷新扫描成功')
+    } else {
+      $message['info'](res.msg)
     }
+  } catch (error) {
+    console.error('刷新扫描失败：', error)
+    // 显示具体的错误信息
+    const errorMsg = error.response?.data?.msg || '刷新扫描失败'
+    $message['error'](errorMsg)
   }
 }
 
@@ -279,6 +315,22 @@ const showDetail = (row) => {
   margin-bottom: 30px;
   padding-bottom: 15px;
   border-bottom: 2px solid var(--border-color);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.user-info {
+  font-size: 14px;
+  color: var(--text-primary);
+  padding: 8px 12px;
+  background-color: var(--bg-card);
+  border: 2px solid var(--border-color);
+  border-radius: 4px;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.2);
 }
 .page-title {
   font-size: 24px;
