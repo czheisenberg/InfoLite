@@ -13,6 +13,8 @@
       </button>
     </div>
 
+    
+
     <!-- 扫描表单 -->
     <div class="scan-form-card">
       <div class="form-container">
@@ -161,6 +163,8 @@
 import { ref, reactive, computed } from 'vue'
 // 引入封装的axios请求
 import request from '../utils/request'
+// 引入Pixelium Design的Message组件
+import { Message } from '@pixelium/web-vue/es'
 
 // 主题
 import { inject } from 'vue'
@@ -183,6 +187,8 @@ const detailDialogVisible = ref(false)
 // 当前选中的资产
 const currentAsset = ref({})
 
+
+
 // IP格式校验
 const validateIp = (ip) => {
   const reg = /^((25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(25[0-5]|2[0-4]\d|[01]?\d\d?)$/
@@ -193,11 +199,12 @@ const validateIp = (ip) => {
 const handleQuery = async () => {
   // IP校验
   if (!scanForm.ip) {
-    alert('请输入目标IP地址')
+    $message['info']('请输入目标IP地址')
     return
   }
   if (!validateIp(scanForm.ip)) {
-    alert('请输入正确的IP地址（如127.0.0.1）')
+    $message['info']('请输入正确的IP地址（如127.0.0.1）')
+
     return
   }
 
@@ -208,11 +215,15 @@ const handleQuery = async () => {
     })
     tableData.value = res.data
     scanType.value = res.scan_type
+    console.log("res: ", res);
     // 提示成功
-    alert(res.msg)
+    $message['success'](res.msg)
   } catch (error) {
     console.error('查询失败：', error)
     tableData.value = []
+    // 显示具体的错误信息
+    const errorMsg = error.response?.data?.msg || '查询失败'
+    $message['error'](errorMsg)
   }
 }
 
@@ -226,10 +237,13 @@ const handleRefresh = async () => {
       })
       tableData.value = res.data
       scanType.value = res.scan_type
-      alert(res.msg)
+      // 提示成功
+      $message['success'](res.msg)
     } catch (error) {
       console.error('刷新扫描失败：', error)
-      alert('刷新扫描失败')
+      // 显示具体的错误信息
+      const errorMsg = error.response?.data?.msg || '刷新扫描失败'
+      $message['error'](errorMsg)
     }
   }
 }
@@ -273,7 +287,7 @@ const showDetail = (row) => {
   text-shadow: 2px 2px 0 var(--border-color);
 }
 
-/* 主题切换按钮样式 */
+/* 主题切换按钮：像素风格 */
 .theme-toggle-btn {
   font-size: 24px;
   background: var(--bg-card);
