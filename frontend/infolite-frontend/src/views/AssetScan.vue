@@ -3,138 +3,162 @@
     <!-- 页面头部 -->
     <div class="page-header">
       <h1 class="page-title">InfoLite 网络资产扫描平台</h1>
-      <!-- <p class="page-desc">支持IP端口探测、组件指纹识别，首次扫描自动入库，二次查询秒返回</p> -->
 
-      <el-button 
-        icon="Moon" 
-        circle 
-        size="large" 
+      <button 
         class="theme-toggle-btn"
         @click="toggleTheme"
-        :icon="theme === 'light' ? 'Moon' : 'Sunny'"
         title="切换主题"
-      />
+      >
+        {{ theme === 'light' ? '🌙' : '☀️' }}
+      </button>
     </div>
 
     <!-- 扫描表单 -->
     <div class="scan-form-card">
-      <el-card shadow="hover" border>
-        <el-form :model="scanForm" inline @submit.prevent="handleQuery">
-          <el-form-item label="目标IP" prop="ip">
-            <el-input
-              v-model="scanForm.ip"
-              placeholder="请输入要扫描的IP（如127.0.0.1）"
-              clearable
-              style="width: 300px"
-              @keyup.enter="handleQuery"
-            />
-          </el-form-item>
-          <el-form-item>
-            <el-button type="primary" icon="Search" @click="handleQuery">
+      <div class="form-container">
+        <div class="form-row">
+          <label for="ipInput" class="form-label">目标IP</label>
+          <input
+            id="ipInput"
+            v-model="scanForm.ip"
+            type="text"
+            class="form-input"
+            placeholder="请输入要扫描的IP（如127.0.0.1）"
+            @keyup.enter="handleQuery"
+          />
+          <div class="form-buttons">
+            <button 
+              class="btn-primary" 
+              @click="handleQuery"
+            >
               查询/扫描
-            </el-button>
-            <el-button type="success" icon="Refresh" @click="handleRefresh" :disabled="!scanForm.ip">
+            </button>
+            <button 
+              class="btn-secondary" 
+              @click="handleRefresh" 
+              :disabled="!scanForm.ip"
+            >
               刷新扫描
-            </el-button>
-          </el-form-item>
-        </el-form>
-      </el-card>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- 扫描结果 -->
     <div class="scan-result-card" v-if="hasResult">
-      <el-card shadow="hover" border>
+      <div class="result-container">
         <div class="result-header">
           <h3>
             扫描结果
-            <el-tag :type="scanType === 'db_query' ? 'info' : 'primary'">
-              {{ scanType === 'db_query' ? '从数据库查询' : '实时扫描结果' }}
-            </el-tag>
+            <span class="tag" :class="{ 'tag-info': scanType === 'db_query', 'tag-primary': scanType !== 'db_query' }">
+                {{ scanType === 'db_query' ? '从数据库查询' : '实时扫描结果' }}
+              </span>
           </h3>
           <p>共检测到 {{ tableData.length }} 个开放端口/资产</p>
         </div>
 
         <!-- 结果表格 -->
-        <el-table
-          :data="tableData"
-          border
-          stripe
-          highlight-current-row
-          style="width: 100%; margin-top: 10px"
-          empty-text="该IP无开放端口或扫描失败"
-        >
-          <el-table-column prop="ip" label="目标IP" align="center" width="120" />
-          <el-table-column prop="port" label="开放端口" align="center" width="100" />
-          <el-table-column prop="protocol" label="协议" align="center" width="100">
-            <template #default="scope">
-              <el-tag :type="scope.row.protocol === 'https' ? 'danger' : 'success'">
-                {{ scope.row.protocol }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="status" label="端口状态" align="center" width="100">
-            <template #default="scope">
-              <el-tag type="success">{{ scope.row.status }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="banner" label="Banner" align="center" width="100" />
-          <el-table-column prop="fingerprint" label="组件指纹" align="center">
-            <template #default="scope">
-              <span v-if="scope.row.fingerprint.length > 0">
-                {{ scope.row.fingerprint.join('、') }}
-              </span>
-              <span v-else style="color: #999">未识别</span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="scan_time_str" label="扫描时间" align="center" width="180" />
-          <el-table-column label="操作" align="center" width="120">
-            <template #default="scope">
-              <el-button
-                type="text"
-                icon="InfoFilled"
-                @click="showDetail(scope.row)"
-                title="查看详情"
-              >
-                详情
-              </el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-      </el-card>
+        <div class="table-container">
+          <table class="pixel-table">
+            <thead>
+              <tr>
+                <th>目标IP</th>
+                <th>开放端口</th>
+                <th>协议</th>
+                <th>端口状态</th>
+                <th>Banner</th>
+                <th>组件指纹</th>
+                <th>扫描时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in tableData" :key="`${row.ip}-${row.port}`">
+                <td>{{ row.ip }}</td>
+                <td>{{ row.port }}</td>
+                <td>
+                  <span class="tag" :class="{ 'tag-danger': row.protocol === 'https', 'tag-success': row.protocol !== 'https' }">
+                      {{ row.protocol }}
+                    </span>
+                </td>
+                <td>
+                  <span class="tag tag-success">{{ row.status }}</span>
+                </td>
+                <td>{{ row.banner }}</td>
+                <td>
+                  <span v-if="row.fingerprint.length > 0">
+                    {{ row.fingerprint.join('、') }}
+                  </span>
+                  <span v-else class="text-muted">未识别</span>
+                </td>
+                <td>{{ row.scan_time_str }}</td>
+                <td>
+                  <button 
+                    class="btn-text" 
+                    @click="showDetail(row)"
+                  >
+                    详情
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <!-- 资产详情弹窗 -->
-    <el-dialog
-      title="资产详情"
-      v-model="detailDialogVisible"
-      width="60%"
-      center
-      destroy-on-close
-    >
-      <el-descriptions :column="1" border :data="currentAsset" v-if="currentAsset">
-        <el-descriptions-item label="目标IP">{{ currentAsset.ip }}</el-descriptions-item>
-        <el-descriptions-item label="开放端口">{{ currentAsset.port }}</el-descriptions-item>
-        <el-descriptions-item label="协议">{{ currentAsset.protocol }}</el-descriptions-item>
-        <el-descriptions-item label="端口状态">{{ currentAsset.status }}</el-descriptions-item>
-        <el-descriptions-item label="服务Banner">{{ currentAsset.banner || '未知' }}</el-descriptions-item>
-        <el-descriptions-item label="组件指纹">
-          {{ currentAsset.fingerprint.length > 0 ? currentAsset.fingerprint.join('、') : '未识别' }}
-        </el-descriptions-item>
-        <el-descriptions-item label="HTTP状态码" v-if="currentAsset.http_info">
-          {{ currentAsset.http_info.status_code }}
-        </el-descriptions-item>
-        <el-descriptions-item label="扫描时间">{{ currentAsset.scan_time_str }}</el-descriptions-item>
-      </el-descriptions>
-      <template #footer>
-        <el-button @click="detailDialogVisible = false">关闭</el-button>
-      </template>
-    </el-dialog>
+    <div class="modal-overlay" v-if="detailDialogVisible" @click="detailDialogVisible = false">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>资产详情</h3>
+          <button class="modal-close" @click="detailDialogVisible = false">×</button>
+        </div>
+        <div class="modal-body" v-if="currentAsset">
+          <div class="detail-item">
+            <span class="detail-label">目标IP：</span>
+            <span class="detail-value">{{ currentAsset.ip }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">开放端口：</span>
+            <span class="detail-value">{{ currentAsset.port }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">协议：</span>
+            <span class="detail-value">{{ currentAsset.protocol }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">端口状态：</span>
+            <span class="detail-value">{{ currentAsset.status }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">服务Banner：</span>
+            <span class="detail-value">{{ currentAsset.banner || '未知' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">组件指纹：</span>
+            <span class="detail-value">{{ currentAsset.fingerprint.length > 0 ? currentAsset.fingerprint.join('、') : '未识别' }}</span>
+          </div>
+          <div class="detail-item" v-if="currentAsset.http_info">
+            <span class="detail-label">HTTP状态码：</span>
+            <span class="detail-value">{{ currentAsset.http_info.status_code }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">扫描时间：</span>
+            <span class="detail-value">{{ currentAsset.scan_time_str }}</span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" @click="detailDialogVisible = false">关闭</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
 // 引入封装的axios请求
 import request from '../utils/request'
 
@@ -169,11 +193,11 @@ const validateIp = (ip) => {
 const handleQuery = async () => {
   // IP校验
   if (!scanForm.ip) {
-    ElMessage.warning('请输入目标IP地址')
+    alert('请输入目标IP地址')
     return
   }
   if (!validateIp(scanForm.ip)) {
-    ElMessage.error('请输入正确的IP地址（如127.0.0.1）')
+    alert('请输入正确的IP地址（如127.0.0.1）')
     return
   }
 
@@ -185,7 +209,7 @@ const handleQuery = async () => {
     tableData.value = res.data
     scanType.value = res.scan_type
     // 提示成功
-    ElMessage.success(res.msg)
+    alert(res.msg)
   } catch (error) {
     console.error('查询失败：', error)
     tableData.value = []
@@ -194,27 +218,19 @@ const handleQuery = async () => {
 
 // 处理刷新扫描（强制重新扫描）
 const handleRefresh = async () => {
-  try {
-    ElMessageBox.confirm(
-      '确定要刷新扫描该IP吗？会重新执行端口探测并覆盖旧数据',
-      '提示',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    ).then(async () => {
+  if (confirm('确定要刷新扫描该IP吗？会重新执行端口探测并覆盖旧数据')) {
+    try {
       // 调用后端接口，refresh=true（强制刷新）
       const res = await request.get('/asset/query', {
         params: { ip: scanForm.ip, refresh: true }
       })
       tableData.value = res.data
       scanType.value = res.scan_type
-      ElMessage.success(res.msg)
-    })
-  } catch (error) {
-    console.error('刷新扫描失败：', error)
-    ElMessage.info('已取消刷新扫描')
+      alert(res.msg)
+    } catch (error) {
+      console.error('刷新扫描失败：', error)
+      alert('刷新扫描失败')
+    }
   }
 }
 
@@ -226,13 +242,18 @@ const showDetail = (row) => {
 </script>
 
 <style scoped>
+/* 像素风格字体 */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
 /* 页面整体样式：替换为CSS变量 👇 */
 .asset-scan-page {
-  max-width: 1400px;
+  /* max-width: 1400px; */
+  width: 100%;
   margin: 0 auto;
   padding: 20px;
   background-color: var(--bg-main);
   min-height: 100vh;
+  font-family: 'Press Start 2P', monospace;
 }
 
 /* 页面头部：新增flex布局，容纳切换按钮 */
@@ -243,47 +264,134 @@ const showDetail = (row) => {
   text-align: left;
   margin-bottom: 30px;
   padding-bottom: 15px;
-  border-bottom: 1px solid var(--border-color);
-}
-.header-left {
-  flex: 1;
+  border-bottom: 2px solid var(--border-color);
 }
 .page-title {
-  font-size: 28px;
+  font-size: 24px;
   color: var(--text-primary);
-  margin: 0 0 10px 0;
-  font-weight: 600;
-}
-.page-desc {
-  font-size: 16px;
-  color: var(--text-secondary);
   margin: 0;
+  text-shadow: 2px 2px 0 var(--border-color);
 }
+
 /* 主题切换按钮样式 */
 .theme-toggle-btn {
-  margin-left: 20px;
-  --el-button-bg-color: var(--bg-card);
-  --el-button-text-color: var(--text-primary);
-  --el-button-hover-bg-color: var(--hover-color);
+  font-size: 24px;
+  background: var(--bg-card);
+  border: 2px solid var(--border-color);
+  padding: 8px 12px;
+  cursor: pointer;
+  box-shadow: 3px 3px 0 var(--border-color);
+  transition: all 0.2s;
+}
+.theme-toggle-btn:hover {
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0 var(--border-color);
+}
+.theme-toggle-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--border-color);
 }
 
 /* 扫描表单 */
 .scan-form-card {
   margin-bottom: 30px;
 }
+.form-container {
+  background: var(--bg-card);
+  border: 2px solid var(--border-color);
+  padding: 20px;
+  box-shadow: 5px 5px 0 var(--border-color);
+}
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+.form-label {
+  font-size: 14px;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+.form-input {
+  flex: 1;
+  max-width: 300px;
+  padding: 10px;
+  border: 2px solid var(--border-color);
+  background: var(--bg-main);
+  color: var(--text-primary);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 14px;
+  box-shadow: 3px 3px 0 var(--border-color);
+}
+.form-input:focus {
+  outline: none;
+  border-color: var(--text-primary);
+}
+.form-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+/* 按钮样式 */
+.btn-primary, .btn-secondary, .btn-text {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 12px;
+  padding: 8px 12px;
+  border: 2px solid var(--border-color);
+  cursor: pointer;
+  box-shadow: 3px 3px 0 var(--border-color);
+  transition: all 0.2s;
+}
+.btn-primary {
+  background: #4CAF50;
+  color: white;
+}
+.btn-secondary {
+  background: #2196F3;
+  color: white;
+}
+.btn-text {
+  background: transparent;
+  color: var(--text-primary);
+  border: none;
+  box-shadow: none;
+  text-decoration: underline;
+}
+.btn-primary:hover, .btn-secondary:hover {
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0 var(--border-color);
+}
+.btn-primary:active, .btn-secondary:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--border-color);
+}
+.btn-primary:disabled, .btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 3px 3px 0 var(--border-color);
+}
 
 /* 扫描结果 */
 .scan-result-card {
   margin-top: 20px;
 }
+.result-container {
+  background: var(--bg-card);
+  border: 2px solid var(--border-color);
+  padding: 20px;
+  box-shadow: 5px 5px 0 var(--border-color);
+}
 .result-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 .result-header h3 {
-  font-size: 18px;
+  font-size: 16px;
   color: var(--text-primary);
   margin: 0;
   display: flex;
@@ -291,9 +399,132 @@ const showDetail = (row) => {
   gap: 10px;
 }
 .result-header p {
-  font-size: 14px;
+  font-size: 12px;
   color: var(--text-secondary);
   margin: 0;
+}
+
+/* 标签样式 */
+.tag {
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 0;
+  border: 1px solid var(--border-color);
+}
+.tag-primary {
+  background: #2196F3;
+  color: white;
+}
+.tag-info {
+  background: #ff9800;
+  color: white;
+}
+.tag-success {
+  background: #4CAF50;
+  color: white;
+}
+.tag-danger {
+  background: #f44336;
+  color: white;
+}
+
+/* 表格样式 */
+.table-container {
+  overflow-x: auto;
+}
+.pixel-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.pixel-table th, .pixel-table td {
+  border: 2px solid var(--border-color);
+  padding: 8px;
+  text-align: center;
+}
+.pixel-table th {
+  background: var(--bg-main);
+  color: var(--text-primary);
+  font-weight: bold;
+}
+.pixel-table tr:nth-child(even) {
+  background: var(--hover-color);
+}
+.pixel-table tr:hover {
+  background: var(--border-color);
+}
+
+/* 弹窗样式 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+.modal-content {
+  background: var(--bg-card);
+  border: 2px solid var(--border-color);
+  padding: 20px;
+  width: 60%;
+  max-width: 800px;
+  box-shadow: 8px 8px 0 var(--border-color);
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--border-color);
+}
+.modal-header h3 {
+  font-size: 16px;
+  color: var(--text-primary);
+  margin: 0;
+}
+.modal-close {
+  font-size: 24px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-family: 'Press Start 2P', monospace;
+}
+.modal-body {
+  margin-bottom: 20px;
+}
+.detail-item {
+  margin-bottom: 12px;
+  display: flex;
+  flex-wrap: wrap;
+}
+.detail-label {
+  font-weight: bold;
+  color: var(--text-primary);
+  margin-right: 10px;
+  min-width: 120px;
+}
+.detail-value {
+  color: var(--text-secondary);
+  flex: 1;
+}
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 10px;
+  border-top: 2px solid var(--border-color);
+}
+
+/* 文本样式 */
+.text-muted {
+  color: var(--text-secondary);
+  font-style: italic;
 }
 
 /* 响应式适配 */
@@ -302,10 +533,20 @@ const showDetail = (row) => {
     padding: 10px;
   }
   .page-title {
-    font-size: 24px;
+    font-size: 18px;
   }
-  .el-input {
-    width: 200px !important;
+  .form-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .form-input {
+    width: 100%;
+    max-width: none;
+  }
+  .form-buttons {
+    width: 100%;
+    justify-content: flex-start;
   }
   .result-header {
     flex-direction: column;
@@ -320,7 +561,15 @@ const showDetail = (row) => {
   }
   .theme-toggle-btn {
     align-self: flex-end;
-    margin-left: 0;
+  }
+  .modal-content {
+    width: 90%;
+  }
+  .pixel-table {
+    font-size: 10px;
+  }
+  .pixel-table th, .pixel-table td {
+    padding: 4px;
   }
 }
 </style>

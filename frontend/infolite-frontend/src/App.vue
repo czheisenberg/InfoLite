@@ -45,6 +45,8 @@ provide('toggleTheme', () => {
 body {
   min-height: 100vh;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-primary);
 }
 
 /* 定义CSS变量：亮色/暗色主题（通过HTML根节点class区分） */
@@ -94,5 +96,11 @@ body {
 .dark .el-input__wrapper, .dark .el-card {
   border-color: var(--border-color) !important;
   background-color: var(--bg-card) !important;
+}
+
+/* 全局body背景色和文字颜色 */
+body {
+  background-color: var(--bg-main);
+  color: var(--text-primary);
 }
 </style>
