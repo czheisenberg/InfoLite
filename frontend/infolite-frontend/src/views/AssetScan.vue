@@ -1,59 +1,60 @@
 <template>
   <div class="asset-scan-page">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <h1 class="page-title">InfoLite 网络资产扫描平台</h1>
+    <!-- 新的页面头部（包含输入IP部分） -->
+    <div class="new-page-header">
+      <!-- 顶部标题部分 -->
+      <div class="header-top">
+        <h1 class="page-title">InfoLite 网络资产扫描平台</h1>
 
-      <div class="header-actions">
-        <span class="user-info" v-if="username">
-          {{ username }}
-        </span>
-        <button 
-          class="btn-secondary" 
-          @click="handleLogout"
-          title="退出登录"
-        >
-          退出
-        </button>
-        <button 
-          class="theme-toggle-btn"
-          @click="toggleTheme"
-          title="切换主题"
-        >
-          {{ theme === 'light' ? '🌙' : '☀️' }}
-        </button>
+        <div class="header-actions">
+          <span class="user-info" v-if="username">
+            {{ username }}
+          </span>
+          <button 
+            class="btn-secondary" 
+            @click="handleLogout"
+            title="退出登录"
+          >
+            退出
+          </button>
+          <button 
+            class="theme-toggle-btn"
+            @click="toggleTheme"
+            title="切换主题"
+          >
+            {{ theme === 'light' ? '🌙' : '☀️' }}
+          </button>
+        </div>
       </div>
-    </div>
-
-    
-
-    <!-- 扫描表单 -->
-    <div class="scan-form-card">
-      <div class="form-container">
-        <div class="form-row">
-          <label for="ipInput" class="form-label">目标IP</label>
-          <input
-            id="ipInput"
-            v-model="scanForm.ip"
-            type="text"
-            class="form-input"
-            placeholder="请输入要扫描的IP（如127.0.0.1）"
-            @keyup.enter="handleQuery"
-          />
-          <div class="form-buttons">
-            <button 
-              class="btn-primary" 
-              @click="handleQuery"
-            >
-              查询/扫描
-            </button>
-            <button 
-              class="btn-secondary" 
-              @click="handleRefresh" 
-              :disabled="!scanForm.ip"
-            >
-              刷新扫描
-            </button>
+      
+      <!-- 扫描表单部分 -->
+      <div class="header-form">
+        <div class="form-container">
+          <div class="form-row">
+            <label for="ipInput" class="form-label">目标IP</label>
+            <input
+              id="ipInput"
+              v-model="scanForm.ip"
+              type="text"
+              class="form-input"
+              placeholder="请输入要扫描的IP（如127.0.0.1）"
+              @keyup.enter="handleQuery"
+            />
+            <div class="form-buttons">
+              <button 
+                class="btn-primary" 
+                @click="handleQuery"
+              >
+                查询/扫描
+              </button>
+              <button 
+                class="btn-secondary" 
+                @click="handleRefresh" 
+                :disabled="!scanForm.ip"
+              >
+                刷新扫描
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -72,52 +73,60 @@
           <p>共检测到 {{ tableData.length }} 个开放端口/资产</p>
         </div>
 
-        <!-- 结果表格 -->
-        <div class="table-container">
-          <table class="pixel-table">
-            <thead>
-              <tr>
-                <th>目标IP</th>
-                <th>开放端口</th>
-                <th>协议</th>
-                <th>端口状态</th>
-                <th>Banner</th>
-                <th>组件指纹</th>
-                <th>扫描时间</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="row in tableData" :key="`${row.ip}-${row.port}`">
-                <td>{{ row.ip }}</td>
-                <td>{{ row.port }}</td>
-                <td>
-                  <span class="tag" :class="{ 'tag-danger': row.protocol === 'https', 'tag-success': row.protocol !== 'https' }">
-                      {{ row.protocol }}
-                    </span>
-                </td>
-                <td>
-                  <span class="tag tag-success">{{ row.status }}</span>
-                </td>
-                <td>{{ row.banner }}</td>
-                <td>
-                  <span v-if="row.fingerprint.length > 0">
-                    {{ row.fingerprint.join('、') }}
-                  </span>
-                  <span v-else class="text-muted">未识别</span>
-                </td>
-                <td>{{ row.scan_time_str }}</td>
-                <td>
-                  <button 
-                    class="btn-text" 
-                    @click="showDetail(row)"
-                  >
-                    详情
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <!-- 结果卡片 -->
+        <div class="cards-container">
+          <div 
+            v-for="row in tableData" 
+            :key="`${row.ip}-${row.port}`"
+            class="asset-card"
+          >
+            <!-- 卡片头部 -->
+            <div class="card-header">
+              <div class="card-title">
+                {{ row.protocol }}://{{ row.ip }}:{{ row.port }}
+              </div>
+              <div class="card-port">{{ row.port }}</div>
+            </div>
+            
+            <!-- 卡片内容 -->
+            <div class="card-content">
+              <!-- 基本信息 -->
+              <div class="info-row">
+                <span class="info-label">目标IP：</span>
+                <span class="info-value">{{ row.ip }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">端口状态：</span>
+                <span class="info-value">{{ row.status }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">服务Banner：</span>
+                <span class="info-value">{{ row.banner }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">组件指纹：</span>
+                <span class="info-value">{{ row.fingerprint.length > 0 ? row.fingerprint.join('、') : '未识别' }}</span>
+              </div>
+              
+              <!-- HTTP状态码 -->
+              <div class="info-row" v-if="row.http_info">
+                <span class="info-label">HTTP状态码：</span>
+                <span class="info-value">{{ row.http_info.status_code }}</span>
+              </div>
+              
+              <!-- HTTP响应头 -->
+              <div class="headers-section" v-if="hasCardHeaders(row)">
+                <div class="headers-tab">Header</div>
+                <pre class="headers-content">{{ getCardHeaders(row) }}</pre>
+              </div>
+            </div>
+            
+            <!-- 卡片底部 -->
+            <div class="card-footer">
+              <span class="scan-time">{{ row.scan_time_str }}</span>
+              <button class="btn-text" @click="showDetail(row)">详情</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -157,6 +166,13 @@
           <div class="detail-item" v-if="currentAsset.http_info">
             <span class="detail-label">HTTP状态码：</span>
             <span class="detail-value">{{ currentAsset.http_info.status_code }}</span>
+          </div>
+          <!-- HTTP响应头信息 -->
+          <div class="detail-item" v-if="hasHeaders">
+            <span class="detail-label">HTTP响应头：</span>
+            <div class="detail-value headers-container">
+              <pre class="headers-pre">{{ formattedHeaders }}</pre>
+            </div>
           </div>
           <div class="detail-item">
             <span class="detail-label">扫描时间：</span>
@@ -289,6 +305,85 @@ const showDetail = (row) => {
   currentAsset.value = row
   detailDialogVisible.value = true
 }
+
+// 计算属性：是否有headers信息
+const hasHeaders = computed(() => {
+  // 检查http_info.headers（实时扫描结果）
+  if (currentAsset.value.http_info && currentAsset.value.http_info.headers) {
+    return Object.keys(currentAsset.value.http_info.headers).length > 0
+  }
+  // 检查headers（数据库查询结果）
+  if (currentAsset.value.headers) {
+    return Object.keys(currentAsset.value.headers).length > 0
+  }
+  return false
+})
+
+// 计算属性：格式化后的headers信息
+const formattedHeaders = computed(() => {
+  let headers = {}
+  // 优先使用http_info.headers（实时扫描结果）
+  if (currentAsset.value.http_info && currentAsset.value.http_info.headers) {
+    headers = currentAsset.value.http_info.headers
+  }
+  // 否则使用headers（数据库查询结果）
+  else if (currentAsset.value.headers) {
+    headers = currentAsset.value.headers
+  }
+  
+  // 格式化为字符串
+  return Object.entries(headers)
+    .map(([key, value]) => `${key}: ${value}`)
+    .join('\n')
+})
+
+// 响应头展开状态管理
+const openHeaders = ref(new Set())
+
+// 检查资产是否有headers信息（用于卡片）
+const hasCardHeaders = (row) => {
+  // 检查http_info.headers（实时扫描结果）
+  if (row.http_info && row.http_info.headers) {
+    return Object.keys(row.http_info.headers).length > 0
+  }
+  // 检查headers（数据库查询结果）
+  if (row.headers) {
+    return Object.keys(row.headers).length > 0
+  }
+  return false
+}
+
+// 切换响应头展开/收起状态
+const toggleHeaders = (key) => {
+  if (openHeaders.value.has(key)) {
+    openHeaders.value.delete(key)
+  } else {
+    openHeaders.value.add(key)
+  }
+}
+
+// 检查响应头是否展开
+const isHeadersOpen = (key) => {
+  return openHeaders.value.has(key)
+}
+
+// 获取格式化后的响应头信息（用于卡片）
+const getCardHeaders = (row) => {
+  let headers = {}
+  // 优先使用http_info.headers（实时扫描结果）
+  if (row.http_info && row.http_info.headers) {
+    headers = row.http_info.headers
+  }
+  // 否则使用headers（数据库查询结果）
+  else if (row.headers) {
+    headers = row.headers
+  }
+  
+  // 格式化为字符串
+  return Object.entries(headers)
+    .map(([key, value]) => `${key}: ${value}`)
+    .join('\n')
+}
 </script>
 
 <style scoped>
@@ -297,8 +392,8 @@ const showDetail = (row) => {
 
 /* 页面整体样式：替换为CSS变量 👇 */
 .asset-scan-page {
-  /* max-width: 1400px; */
-  width: 100%;
+  max-width: 1400px;
+  /* width: 100%; */
   margin: 0 auto;
   padding: 20px;
   background-color: var(--bg-main);
@@ -306,15 +401,56 @@ const showDetail = (row) => {
   font-family: 'Press Start 2P', monospace;
 }
 
-/* 页面头部：新增flex布局，容纳切换按钮 */
-.page-header {
+/* 新的页面头部（包含输入IP部分） */
+.new-page-header {
+  background: var(--bg-main);
+  border-bottom: 3px solid var(--border-color);
+  padding: 20px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  max-width: 1400px;
+  margin: 0 auto;
+  width: calc(100% - 40px);
+}
+
+/* 头部顶部（标题和操作按钮） */
+.header-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  text-align: left;
-  margin-bottom: 30px;
-  padding-bottom: 15px;
-  border-bottom: 2px solid var(--border-color);
+  margin-bottom: 20px;
+}
+
+.header-top .header-actions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.header-top .user-info {
+  font-size: 14px;
+  color: var(--text-primary);
+  padding: 8px 12px;
+  background-color: var(--bg-card);
+  border: 2px solid var(--border-color);
+  border-radius: 4px;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.2);
+}
+
+.header-top .page-title {
+  font-size: 24px;
+  color: var(--text-primary);
+  margin: 0;
+  text-shadow: 2px 2px 0 var(--border-color);
+}
+
+/* 头部表单部分 */
+.header-form {
+  margin-top: 10px;
 }
 
 .header-actions {
@@ -359,9 +495,6 @@ const showDetail = (row) => {
 }
 
 /* 扫描表单 */
-.scan-form-card {
-  margin-bottom: 30px;
-}
 .form-container {
   background: var(--bg-card);
   border: 2px solid var(--border-color);
@@ -440,7 +573,8 @@ const showDetail = (row) => {
 
 /* 扫描结果 */
 .scan-result-card {
-  margin-top: 20px;
+  margin-top: 240px;
+  margin-bottom: 30px;
 }
 .result-container {
   background: var(--bg-card);
@@ -593,6 +727,147 @@ const showDetail = (row) => {
   font-style: italic;
 }
 
+/* HTTP响应头容器样式 */
+.headers-container {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.headers-pre {
+  background: var(--bg-main);
+  border: 2px solid var(--border-color);
+  padding: 12px;
+  margin: 0;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-height: 300px;
+  overflow-y: auto;
+  box-shadow: inset 2px 2px 0 var(--border-color);
+}
+
+/* 卡片容器样式 */
+.cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+/* 资产卡片样式 */
+.asset-card {
+  background: var(--bg-main);
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.asset-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* 卡片头部 */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-bottom: 2px solid var(--border-color);
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+.card-port {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  padding: 4px 8px;
+  border: 2px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* 卡片内容 */
+.card-content {
+  padding: 16px;
+}
+
+/* 信息行 */
+.info-row {
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.info-label {
+  color: var(--text-secondary);
+  margin-right: 8px;
+}
+
+.info-value {
+  color: var(--text-primary);
+}
+
+/* 响应头部分 */
+.headers-section {
+  margin-top: 16px;
+  border-top: 2px solid var(--border-color);
+  padding-top: 16px;
+}
+
+.headers-tab {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  padding: 8px 16px;
+  border: 2px solid var(--border-color);
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  font-weight: bold;
+  font-size: 14px;
+  display: inline-block;
+  margin-bottom: 0;
+}
+
+.headers-content {
+  background: var(--bg-main);
+  border: 2px solid var(--border-color);
+  padding: 12px;
+  margin: 0;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-height: 300px;
+  overflow-y: auto;
+  border-radius: 0 0 4px 4px;
+  box-shadow: inset 2px 2px 0 var(--border-color);
+}
+
+/* 卡片底部 */
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--bg-secondary);
+  border-top: 2px solid var(--border-color);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
 /* 响应式适配 */
 @media (max-width: 768px) {
   .asset-scan-page {
@@ -631,11 +906,17 @@ const showDetail = (row) => {
   .modal-content {
     width: 90%;
   }
-  .pixel-table {
-    font-size: 10px;
+  /* 卡片布局响应式 */
+  .asset-card {
+    margin-bottom: 15px;
   }
-  .pixel-table th, .pixel-table td {
-    padding: 4px;
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .card-port {
+    align-self: flex-end;
   }
 }
 </style>
