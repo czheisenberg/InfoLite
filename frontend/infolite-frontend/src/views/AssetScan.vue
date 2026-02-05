@@ -203,20 +203,28 @@ const validateIp = (ip) => {
 }
 
 // 处理查询/扫描（默认不刷新）
-const handleQuery = async (ip) => {
+const handleQuery = async (scanParams, callback) => {
+  const { ip, portOption, portRange } = scanParams
+  
   // IP校验
   if (!ip) {
     $message['info']('请输入目标IP地址')
+    if (callback) callback()
     return
   }
   if (!validateIp(ip)) {
     $message['info']('请输入正确的IP地址（如127.0.0.1）')
+    if (callback) callback()
     return
   }
 
   try {
     // 调用后端接口，refresh=false（默认不刷新）
-    const res = await queryAsset({ ip: ip })
+    const res = await queryAsset({ 
+      ip: ip,
+      port_option: portOption,
+      port_range: portRange
+    })
     if (res.code === 200) {
       tableData.value = res.data
       // 提示成功
@@ -230,24 +238,35 @@ const handleQuery = async (ip) => {
     // 显示具体的错误信息
     const errorMsg = error.response?.data?.msg || '查询失败'
     $message['error'](errorMsg)
+  } finally {
+    if (callback) callback()
   }
 }
 
 // 处理刷新扫描（强制重新扫描）
-const handleRefresh = async (ip) => {
+const handleRefresh = async (scanParams, callback) => {
+  const { ip, portOption, portRange } = scanParams
+  
   if (!ip) {
     $message['info']('请输入IP地址')
+    if (callback) callback()
     return
   }
   
   if (!validateIp(ip)) {
     $message['info']('请输入正确的IP地址（如127.0.0.1）')
+    if (callback) callback()
     return
   }
   
   try {
     // 调用后端接口，refresh=true（强制刷新）
-    const res = await queryAsset({ ip: ip, refresh: true })
+    const res = await queryAsset({ 
+      ip: ip, 
+      refresh: true,
+      port_option: portOption,
+      port_range: portRange
+    })
     if (res.code === 200) {
       tableData.value = res.data
       // 提示成功
@@ -260,6 +279,8 @@ const handleRefresh = async (ip) => {
     // 显示具体的错误信息
     const errorMsg = error.response?.data?.msg || '刷新扫描失败'
     $message['error'](errorMsg)
+  } finally {
+    if (callback) callback()
   }
 }
 

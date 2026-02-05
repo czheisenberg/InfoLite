@@ -220,7 +220,31 @@ def ip_full_scan(ip, scan_config):
     asset_list = []
     max_workers = scan_config["max_workers"]
     timeout = scan_config["timeout"]
-    ports = scan_config["ports"]
+    
+    # 确定要扫描的端口列表
+    port_option = scan_config.get("port_option", "common")
+    port_range = scan_config.get("port_range", "1-65535")
+    
+    if port_option == "common":
+        # 常用端口：1-1024
+        ports = list(range(1, 1025))
+    elif port_option == "custom":
+        # 自定义端口范围
+        try:
+            start_port, end_port = map(int, port_range.split("-"))
+            if start_port < 1 or end_port > 65535 or start_port > end_port:
+                # 范围无效，使用默认端口
+                ports = scan_config["ports"]
+                print(f"[警告] 端口范围无效: {port_range}，使用默认端口列表")
+            else:
+                ports = list(range(start_port, end_port + 1))
+        except:
+            # 解析失败，使用默认端口
+            ports = scan_config["ports"]
+            print(f"[警告] 端口范围格式错误: {port_range}，使用默认端口列表")
+    else:
+        # 默认使用配置中的端口列表
+        ports = scan_config["ports"]
     
     # 第一步：多线程TCP端口探测，筛选开放端口
     print(f"[扫描开始] IP: {ip}，探测端口数: {len(ports)}，并发数: {max_workers}")

@@ -15,6 +15,8 @@ router = APIRouter(prefix="/api/asset", tags=["资产操作"])
 async def query_asset(
     ip: str = Query(..., description="目标IP地址，如127.0.0.1"),
     refresh: bool = Query(False, description="是否强制刷新扫描，默认False"),
+    port_option: str = Query("common", description="端口选项：common（常用端口1-1024）或custom（自定义端口范围）"),
+    port_range: str = Query("1-65535", description="自定义端口范围，如1-65535"),
     current_user: dict = Depends(lambda: None),  # 临时占位，后续会替换
     db: dict = Depends(get_db)
 ):
@@ -49,7 +51,11 @@ async def query_asset(
                 )
         
         # 第四步：触发扫描（无数据/数据过期/强制刷新）
-        asset_list = ip_full_scan(ip, db["scan_config"])
+        # 传递端口选项和端口范围
+        scan_config = db["scan_config"].copy()
+        scan_config["port_option"] = port_option
+        scan_config["port_range"] = port_range
+        asset_list = ip_full_scan(ip, scan_config)
         if not asset_list:
             return JSONResponse(
                 status_code=200,

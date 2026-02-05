@@ -38,19 +38,43 @@
             placeholder="请输入要扫描的IP（如127.0.0.1）"
             @keyup.enter="handleQuery"
           />
+          
+          <label for="portOption" class="form-label">端口选项</label>
+          <select 
+            id="portOption" 
+            v-model="scanForm.portOption" 
+            class="form-input"
+          >
+            <option value="common">常用端口（1-1024）</option>
+            <option value="custom">自定义端口范围</option>
+          </select>
+          
+          <template v-if="scanForm.portOption === 'custom'">
+            <input
+              v-model="scanForm.portRange"
+              type="text"
+              class="form-input"
+              placeholder="请输入端口范围（如1-65535）"
+              style="max-width: 180px;"
+            />
+          </template>
+          
           <div class="form-buttons">
             <button 
               class="btn-primary" 
               @click="handleQuery"
+              :disabled="loading || !scanForm.ip"
             >
-              查询/扫描
+              <span v-if="loading">扫描中...</span>
+              <span v-else>查询/扫描</span>
             </button>
             <button 
               class="btn-secondary" 
               @click="handleRefresh" 
-              :disabled="!scanForm.ip"
+              :disabled="loading || !scanForm.ip"
             >
-              刷新扫描
+              <span v-if="loading">刷新中...</span>
+              <span v-else>刷新扫描</span>
             </button>
           </div>
         </div>
@@ -79,8 +103,13 @@ const emit = defineEmits(['logout', 'toggle-theme', 'query', 'refresh'])
 
 // 扫描表单
 const scanForm = reactive({
-  ip: ''
+  ip: '',
+  portOption: 'common', // common: 常用端口(1-1024), custom: 自定义端口范围
+  portRange: '1-65535' // 默认端口范围
 })
+
+// 加载状态
+const loading = ref(false)
 
 // 处理退出登录
 const handleLogout = () => {
@@ -94,12 +123,26 @@ const toggleTheme = () => {
 
 // 处理查询/扫描
 const handleQuery = () => {
-  emit('query', scanForm.ip)
+  loading.value = true
+  emit('query', {
+    ip: scanForm.ip,
+    portOption: scanForm.portOption,
+    portRange: scanForm.portRange
+  }, () => {
+    loading.value = false
+  })
 }
 
 // 处理刷新扫描
 const handleRefresh = () => {
-  emit('refresh', scanForm.ip)
+  loading.value = true
+  emit('refresh', {
+    ip: scanForm.ip,
+    portOption: scanForm.portOption,
+    portRange: scanForm.portRange
+  }, () => {
+    loading.value = false
+  })
 }
 
 // 监听回车键
