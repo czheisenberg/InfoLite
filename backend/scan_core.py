@@ -13,12 +13,34 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 # 全局变量 - 指纹规则库（基于Wappalyzer，适配常见Web组件）
 FINGERPRINT_DB = [
-    {"name": "Nginx", "regex": [r"Server: nginx/(\d+\.\d+\.\d+)", r"Server: nginx"], "favicon": []},
-    {"name": "Apache", "regex": [r"Server: Apache/(\d+\.\d+\.\d+)", r"Server: Apache"], "favicon": []},
-    {"name": "Tomcat", "regex": [r"Apache-Coyote", r"JSESSIONID", r"Tomcat"], "favicon": ["443b7e4d4a853022c66014e059820433"]},
-    {"name": "WordPress", "regex": [r"WordPress", r"/wp-content/", r"/wp-includes/"], "favicon": []},
-    {"name": "MySQL", "regex": [r"MySQL Server", r"mysql_native_password"], "favicon": []},
-    {"name": "Redis", "regex": [r"Redis server", r"REDIS"], "favicon": []}
+    # Web服务
+    {"name": "Nginx", "regex": [r"Server: nginx/(\d+\.\d+\.\d+)", r"Server: nginx"], "favicon": [], "ports": [80, 443, 8000, 8080, 8090, 9090]},
+    {"name": "Apache", "regex": [r"Server: Apache/(\d+\.\d+\.\d+)", r"Server: Apache"], "favicon": [], "ports": [80, 443, 8000, 8080, 8090, 9090]},
+    {"name": "Tomcat", "regex": [r"Apache-Coyote", r"JSESSIONID", r"Tomcat"], "favicon": ["443b7e4d4a853022c66014e059820433"], "ports": [8000, 8080, 8443]},
+    {"name": "WordPress", "regex": [r"WordPress", r"/wp-content/", r"/wp-includes/"], "favicon": [], "ports": [80, 443, 8000, 8080, 8090, 9090]},
+    
+    # 数据库服务
+    {"name": "MySQL", "regex": [r"MySQL Server", r"mysql_native_password", r"MariaDB server"], "favicon": [], "ports": [3306]},
+    {"name": "PostgreSQL", "regex": [r"PostgreSQL", r"postgres"], "favicon": [], "ports": [5432]},
+    {"name": "MongoDB", "regex": [r"MongoDB", r"mongodb"], "favicon": [], "ports": [27017]},
+    {"name": "Redis", "regex": [r"Redis server", r"REDIS"], "favicon": [], "ports": [6379]},
+    
+    # 远程访问服务
+    {"name": "SSH", "regex": [r"SSH-\d+\.\d+", r"OpenSSH"], "favicon": [], "ports": [22]},
+    {"name": "RDP", "regex": [r"RDP", r"Remote Desktop"], "favicon": [], "ports": [3389]},
+    {"name": "Telnet", "regex": [r"Telnet", r"Escape character is"], "favicon": [], "ports": [23]},
+    
+    # 其他常见服务
+    {"name": "FTP", "regex": [r"220.*FTP", r"FileZilla Server", r"ProFTPD", r"vsftpd"], "favicon": [], "ports": [21]},
+    {"name": "SMTP", "regex": [r"220.*ESMTP", r"Postfix", r"Sendmail"], "favicon": [], "ports": [25, 465, 587]},
+    {"name": "POP3", "regex": [r"\\+OK.*POP3", r"POP3 server"], "favicon": [], "ports": [110, 995]},
+    {"name": "IMAP", "regex": [r"\\* OK.*IMAP", r"IMAP4rev1"], "favicon": [], "ports": [143, 993]},
+    {"name": "DNS", "regex": [r"DNS", r"domain service"], "favicon": [], "ports": [53]},
+    {"name": "DHCP", "regex": [r"DHCP", r"Dynamic Host Configuration Protocol"], "favicon": [], "ports": [67, 68]},
+    {"name": "SNMP", "regex": [r"SNMP", r"Simple Network Management Protocol"], "favicon": [], "ports": [161, 162]},
+    {"name": "LDAP", "regex": [r"LDAP", r"Lightweight Directory Access Protocol"], "favicon": [], "ports": [389, 636]},
+    {"name": "SMB", "regex": [r"SMB", r"Server Message Block", r"Microsoft Windows Network"], "favicon": [], "ports": [445]},
+    {"name": "NFS", "regex": [r"NFS", r"Network File System"], "favicon": [], "ports": [2049]}
 ]
 
 def init_scan_config(allowed_ip_prefix, max_concurrent, scan_timeout, common_ports):
@@ -139,8 +161,8 @@ def http_https_scan(ip, port, timeout):
 
 def match_fingerprint(scan_info):
     """
-    指纹匹配 - 正则匹配（Banner/响应头）+ favicon MD5匹配
-    :param scan_info: 扫描信息字典（含banner、http_header、favicon_md5）
+    指纹匹配 - 正则匹配（Banner/响应头）+ favicon MD5匹配 + 端口号匹配
+    :param scan_info: 扫描信息字典（含banner、http_header、favicon_md5、port）
     :return: 列表 - 匹配到的组件名（如["Nginx", "Tomcat"]）
     """
     match_list = []
@@ -149,20 +171,34 @@ def match_fingerprint(scan_info):
     # 拼接匹配内容（Banner + HTTP响应头）
     match_content = f"{scan_info.get('banner', '')} {scan_info.get('http_header', '')}".lower()
     favicon_md5 = scan_info.get('favicon_md5', '')
+    port = scan_info.get('port', 0)
+    
+    print(f"[指纹识别] 端口: {port}, Banner: {scan_info.get('banner', '')}")
     
     for rule in FINGERPRINT_DB:
         matched = False
         # 1. 正则匹配（忽略大小写）
         for reg in rule["regex"]:
-            if re.search(reg, match_content, re.IGNORECASE):
-                matched = True
-                break
+            try:
+                if re.search(reg, match_content, re.IGNORECASE):
+                    matched = True
+                    print(f"[指纹识别] 正则匹配成功: {rule['name']}")
+                    break
+            except Exception as e:
+                print(f"[指纹识别] 正则错误: {reg}, 错误: {str(e)}")
         # 2. Favicon MD5匹配（正则未匹配时触发）
         if not matched and favicon_md5 and favicon_md5 in rule["favicon"]:
             matched = True
+            print(f"[指纹识别] Favicon匹配成功: {rule['name']}")
+        # 3. 端口号匹配（正则和Favicon都未匹配时触发）
+        if not matched and port and "ports" in rule and port in rule["ports"]:
+            matched = True
+            print(f"[指纹识别] 端口匹配成功: {rule['name']} (端口: {port})")
         # 匹配成功则加入结果
         if matched:
             match_list.append(rule["name"])
+    
+    print(f"[指纹识别] 最终匹配结果: {match_list}")
     # 去重并返回
     return list(set(match_list))
 
