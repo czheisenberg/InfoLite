@@ -1,0 +1,308 @@
+<template>
+  <div class="new-page-header">
+    <!-- 顶部标题部分 -->
+    <div class="header-top">
+      <h1 class="page-title">InfoLite 网络资产扫描平台</h1>
+
+      <div class="header-actions">
+        <span class="user-info" v-if="username">
+          {{ username }}
+        </span>
+        <button 
+          class="btn-secondary" 
+          @click="handleLogout"
+          title="退出登录"
+        >
+          退出
+        </button>
+        <button 
+          class="theme-toggle-btn"
+          @click="toggleTheme"
+          title="切换主题"
+        >
+          {{ theme === 'light' ? '🌙' : '☀️' }}
+        </button>
+      </div>
+    </div>
+    
+    <!-- 扫描表单部分 -->
+    <div class="header-form">
+      <div class="form-container">
+        <div class="form-row">
+          <label for="ipInput" class="form-label">目标IP</label>
+          <input
+            id="ipInput"
+            v-model="scanForm.ip"
+            type="text"
+            class="form-input"
+            placeholder="请输入要扫描的IP（如127.0.0.1）"
+            @keyup.enter="handleQuery"
+          />
+          <div class="form-buttons">
+            <button 
+              class="btn-primary" 
+              @click="handleQuery"
+            >
+              查询/扫描
+            </button>
+            <button 
+              class="btn-secondary" 
+              @click="handleRefresh" 
+              :disabled="!scanForm.ip"
+            >
+              刷新扫描
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, reactive } from 'vue'
+
+// 定义props
+const props = defineProps({
+  username: {
+    type: String,
+    default: ''
+  },
+  theme: {
+    type: String,
+    default: 'light'
+  }
+})
+
+// 定义事件
+const emit = defineEmits(['logout', 'toggle-theme', 'query', 'refresh'])
+
+// 扫描表单
+const scanForm = reactive({
+  ip: ''
+})
+
+// 处理退出登录
+const handleLogout = () => {
+  emit('logout')
+}
+
+// 切换主题
+const toggleTheme = () => {
+  emit('toggle-theme')
+}
+
+// 处理查询/扫描
+const handleQuery = () => {
+  emit('query', scanForm.ip)
+}
+
+// 处理刷新扫描
+const handleRefresh = () => {
+  emit('refresh', scanForm.ip)
+}
+
+// 监听回车键
+const handleKeyup = (event) => {
+  if (event.key === 'Enter') {
+    handleQuery()
+  }
+}
+</script>
+
+<style scoped>
+/* 新的页面头部（包含输入IP部分） */
+.new-page-header {
+  background: var(--bg-main);
+  border-bottom: 3px solid var(--border-color);
+  padding: 20px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  max-width: 1400px;
+  margin: 0 auto;
+  width: calc(100% - 40px);
+}
+
+/* 头部顶部（标题和操作按钮） */
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.header-top .header-actions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.header-top .user-info {
+  font-size: 14px;
+  color: var(--text-primary);
+  padding: 8px 12px;
+  background-color: var(--bg-card);
+  border: 2px solid var(--border-color);
+  border-radius: 4px;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.2);
+  font-family: 'Press Start 2P', monospace, 'SimHei', 'Microsoft YaHei';
+}
+
+.header-top .page-title {
+  font-size: 24px;
+  color: var(--text-primary);
+  margin: 0;
+  text-shadow: 2px 2px 0 var(--border-color);
+  font-family: 'Press Start 2P', monospace, 'SimHei', 'Microsoft YaHei';
+}
+
+/* 头部表单部分 */
+.header-form {
+  margin-top: 10px;
+}
+
+.form-container {
+  background: var(--bg-card);
+  border: 2px solid var(--border-color);
+  padding: 20px;
+  box-shadow: 5px 5px 0 var(--border-color);
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.form-label {
+  font-size: 14px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  font-family: 'Press Start 2P', monospace, 'SimHei', 'Microsoft YaHei';
+}
+
+.form-input {
+  flex: 1;
+  max-width: 300px;
+  padding: 10px;
+  border: 2px solid var(--border-color);
+  border-radius: 4px;
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 14px;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.2);
+  font-family: 'Press Start 2P', monospace, 'SimHei', 'Microsoft YaHei';
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.form-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+/* 主题切换按钮：像素风格 */
+.theme-toggle-btn {
+  font-size: 24px;
+  background: var(--bg-card);
+  border: 2px solid var(--border-color);
+  padding: 8px 12px;
+  cursor: pointer;
+  box-shadow: 3px 3px 0 var(--border-color);
+  transition: all 0.2s;
+}
+
+.theme-toggle-btn:hover {
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0 var(--border-color);
+}
+
+.theme-toggle-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--border-color);
+}
+
+/* 按钮样式 */
+.btn-primary, .btn-secondary, .btn-text {
+  font-family: 'Press Start 2P', monospace, 'SimHei', 'Microsoft YaHei';
+  font-size: 12px;
+  padding: 8px 12px;
+  border: 2px solid var(--border-color);
+  cursor: pointer;
+  box-shadow: 3px 3px 0 var(--border-color);
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: #4CAF50;
+  color: white;
+}
+
+.btn-secondary {
+  background: #2196F3;
+  color: white;
+}
+
+.btn-text {
+  background: transparent;
+  color: var(--text-primary);
+  border: none;
+  box-shadow: none;
+  text-decoration: underline;
+}
+
+.btn-primary:hover, .btn-secondary:hover {
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0 var(--border-color);
+}
+
+.btn-primary:active, .btn-secondary:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--border-color);
+}
+
+.btn-primary:disabled, .btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 3px 3px 0 var(--border-color);
+}
+
+/* 响应式适配 */
+@media (max-width: 768px) {
+  .new-page-header {
+    padding: 10px;
+  }
+  .header-top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+    text-align: left;
+  }
+  .header-top .header-actions {
+    align-self: flex-end;
+  }
+  .form-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .form-input {
+    width: 100%;
+    max-width: none;
+  }
+  .form-buttons {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+</style>
