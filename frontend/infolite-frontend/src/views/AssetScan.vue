@@ -90,34 +90,41 @@
             
             <!-- 卡片内容 -->
             <div class="card-content">
-              <!-- 基本信息 -->
-              <div class="info-row">
-                <span class="info-label">目标IP：</span>
-                <span class="info-value">{{ row.ip }}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">端口状态：</span>
-                <span class="info-value">{{ row.status }}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">服务Banner：</span>
-                <span class="info-value">{{ row.banner }}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">组件指纹：</span>
-                <span class="info-value">{{ row.fingerprint.length > 0 ? row.fingerprint.join('、') : '未识别' }}</span>
-              </div>
-              
-              <!-- HTTP状态码 -->
-              <div class="info-row" v-if="row.http_info">
-                <span class="info-label">HTTP状态码：</span>
-                <span class="info-value">{{ row.http_info.status_code }}</span>
-              </div>
-              
-              <!-- HTTP响应头 -->
-              <div class="headers-section" v-if="hasCardHeaders(row)">
-                <div class="headers-tab">Header</div>
-                <pre class="headers-content">{{ getCardHeaders(row) }}</pre>
+              <div class="card-info-container">
+                <!-- 左侧基本信息 -->
+                <div class="card-info-left">
+                  <!-- 基本信息 -->
+                  <div class="info-row">
+                    <span class="info-label">目标IP：</span>
+                    <span class="info-value">{{ row.ip }}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">端口状态：</span>
+                    <span class="info-value">{{ row.status }}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">服务Banner：</span>
+                    <span class="info-value">{{ row.banner }}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">组件指纹：</span>
+                    <span class="info-value">{{ row.fingerprint.length > 0 ? row.fingerprint.join('、') : '未识别' }}</span>
+                  </div>
+                  
+                  <!-- HTTP状态码 -->
+                  <div class="info-row" v-if="row.http_info">
+                    <span class="info-label">HTTP状态码：</span>
+                    <span class="info-value">{{ row.http_info.status_code }}</span>
+                  </div>
+                </div>
+                
+                <!-- 右侧响应头信息 -->
+                <div class="card-info-right" v-if="hasCardHeaders(row)">
+                  <div class="headers-section">
+                    <div class="headers-tab">Header</div>
+                    <pre class="headers-content">{{ getCardHeaders(row) }}</pre>
+                  </div>
+                </div>
               </div>
             </div>
             
@@ -446,6 +453,7 @@ const getCardHeaders = (row) => {
   color: var(--text-primary);
   margin: 0;
   text-shadow: 2px 2px 0 var(--border-color);
+  font-family: 'Press Start 2P', monospace, 'SimHei', 'Microsoft YaHei';
 }
 
 /* 头部表单部分 */
@@ -510,6 +518,7 @@ const getCardHeaders = (row) => {
   font-size: 14px;
   color: var(--text-primary);
   white-space: nowrap;
+  font-family: 'Press Start 2P', monospace, 'SimHei', 'Microsoft YaHei';
 }
 .form-input {
   flex: 1;
@@ -533,7 +542,7 @@ const getCardHeaders = (row) => {
 
 /* 按钮样式 */
 .btn-primary, .btn-secondary, .btn-text {
-  font-family: 'Press Start 2P', monospace;
+  font-family: 'Press Start 2P', monospace, 'SimHei', 'Microsoft YaHei';
   font-size: 12px;
   padding: 8px 12px;
   border: 2px solid var(--border-color);
@@ -787,6 +796,7 @@ const getCardHeaders = (row) => {
   font-weight: bold;
   color: var(--text-primary);
   word-break: break-all;
+  font-family: 'Press Start 2P', monospace;
 }
 
 .card-port {
@@ -797,11 +807,32 @@ const getCardHeaders = (row) => {
   border-radius: 4px;
   font-size: 14px;
   font-weight: bold;
+  font-family: 'Press Start 2P', monospace;
 }
 
 /* 卡片内容 */
 .card-content {
   padding: 16px;
+}
+
+/* 卡片信息容器（水平布局） */
+.card-info-container {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+/* 左侧基本信息 */
+.card-info-left {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 右侧响应头信息 */
+.card-info-right {
+  flex: 1;
+  min-width: 0;
+  max-width: 50%;
 }
 
 /* 信息行 */
@@ -813,46 +844,43 @@ const getCardHeaders = (row) => {
 .info-label {
   color: var(--text-secondary);
   margin-right: 8px;
+  font-family: 'Press Start 2P', monospace;
 }
 
 .info-value {
   color: var(--text-primary);
+  font-family: 'Press Start 2P', monospace;
 }
 
 /* 响应头部分 */
 .headers-section {
-  margin-top: 16px;
-  border-top: 2px solid var(--border-color);
-  padding-top: 16px;
+  border: 2px solid var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
 }
 
 .headers-tab {
   background: var(--bg-secondary);
   color: var(--text-primary);
   padding: 8px 16px;
-  border: 2px solid var(--border-color);
-  border-bottom: none;
-  border-radius: 4px 4px 0 0;
   font-weight: bold;
   font-size: 14px;
-  display: inline-block;
-  margin-bottom: 0;
+  border-bottom: 2px solid var(--border-color);
+  font-family: 'Press Start 2P', monospace;
 }
 
 .headers-content {
   background: var(--bg-main);
-  border: 2px solid var(--border-color);
   padding: 12px;
   margin: 0;
-  font-family: 'Courier New', monospace;
-  font-size: 12px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
   line-height: 1.4;
   color: var(--text-primary);
   white-space: pre-wrap;
   word-wrap: break-word;
   max-height: 300px;
   overflow-y: auto;
-  border-radius: 0 0 4px 4px;
   box-shadow: inset 2px 2px 0 var(--border-color);
 }
 
@@ -866,6 +894,7 @@ const getCardHeaders = (row) => {
   border-top: 2px solid var(--border-color);
   font-size: 12px;
   color: var(--text-secondary);
+  font-family: 'Press Start 2P', monospace;
 }
 
 /* 响应式适配 */
