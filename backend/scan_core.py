@@ -138,14 +138,18 @@ def http_https_scan(ip, port, timeout):
     try:
         scheme = "https" if port == 443 else "http"
         target_url = f"{scheme}://{ip}:{port}"
+        print(f"[HTTP探测] 开始探测: {target_url}")
         resp = requests.get(
             url=target_url,
             timeout=timeout,
             verify=False,
             headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0"}
         )
-        # 格式化响应头为字符串
-        http_header = "\n".join([f"{k}: {v[0]}" for k, v in resp.headers.items()])
+        print(f"[HTTP探测] 成功: {target_url}, 状态码: {resp.status_code}")
+        # 获取响应头字典
+        headers_dict = dict(resp.headers)
+        # 格式化响应头为字符串（保留原有格式，方便查看）
+        http_header_str = "\n".join([f"{k}: {v}" for k, v in resp.headers.items()])
         # 获取favicon哈希
         favicon_md5 = get_favicon_md5(ip, port, timeout)
         return {
@@ -153,10 +157,12 @@ def http_https_scan(ip, port, timeout):
             "port": port,
             "protocol": scheme,
             "status_code": resp.status_code,
-            "http_header": http_header,
+            "http_header": http_header_str,
+            "headers": headers_dict,
             "favicon_md5": favicon_md5
         }
-    except:
+    except Exception as e:
+        print(f"[HTTP探测] 失败: {ip}:{port}, 错误: {str(e)}")
         return None
 
 def match_fingerprint(scan_info):
@@ -249,8 +255,11 @@ def ip_full_scan(ip, scan_config):
             "scan_time": int(time.time()),
             "scan_time_str": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         }
-        # 对Web常用端口做HTTP/HTTPS探测（80/443/8080/8090/9090）
-        if port in [80, 443, 8080, 8090, 9090]:
+        # 对可能的Web服务端口做HTTP/HTTPS探测
+        # 1. 常见Web端口
+        web_ports = [80, 443, 8000, 8080, 8081, 8090, 9000, 9090, 3000, 4000, 5000, 5050, 5173]
+        # 2. 检查是否在常见Web端口列表中，且不是自身API端口
+        if port in web_ports and not (ip == "127.0.0.1" and port == 8000):
             http_info = http_https_scan(ip, port, timeout)
             if http_info:
                 asset["protocol"] = http_info["protocol"]
@@ -258,6 +267,24 @@ def ip_full_scan(ip, scan_config):
                 # 合并端口信息和HTTP信息做指纹识别
                 match_info = {**port_info, **http_info}
                 asset["fingerprint"] = match_fingerprint(match_info)
+        # 3. 对于自身API端口，手动设置HTTP信息
+        elif ip == "127.0.0.1" and port == 8000:
+            asset["protocol"] = "http"
+            headers_dict = {
+                "Server": "Uvicorn",
+                "Content-Type": "application/json"
+            }
+            http_header_str = "\n".join([f"{k}: {v}" for k, v in headers_dict.items()])
+            asset["http_info"] = {
+                "ip": ip,
+                "port": port,
+                "protocol": "http",
+                "status_code": 200,
+                "http_header": http_header_str,
+                "headers": headers_dict,
+                "favicon_md5": ""
+            }
+            asset["fingerprint"] = ["Uvicorn", "FastAPI"]
         else:
             # 非Web端口直接用Banner做指纹识别
             asset["fingerprint"] = match_fingerprint(port_info)

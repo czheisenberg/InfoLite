@@ -67,6 +67,7 @@ def create_mysql_asset_table(conn, cursor):
         status VARCHAR(10) DEFAULT 'open' COMMENT '端口状态',
         banner TEXT COMMENT '服务Banner',
         fingerprint VARCHAR(255) COMMENT '组件指纹（逗号分隔）',
+        headers TEXT COMMENT 'HTTP响应头（JSON格式）',
         scan_time INT NOT NULL COMMENT '扫描时间戳',
         scan_time_str VARCHAR(20) NOT NULL COMMENT '扫描时间字符串',
         create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '入库时间',
@@ -98,6 +99,7 @@ def create_es_asset_index(es, index_name="cyberscan_asset"):
                 "status": {"type": "keyword"},      # 状态
                 "banner": {"type": "text"},         # Banner模糊查询
                 "fingerprint": {"type": "keyword"}, # 指纹精准查询
+                "headers": {"type": "object"},       # HTTP响应头（JSON对象）
                 "scan_time": {"type": "integer"},   # 扫描时间戳
                 "scan_time_str": {"type": "keyword"}# 扫描时间字符串
             }
@@ -133,10 +135,11 @@ def insert_asset_to_mysql(conn, cursor, asset_list):
     
     # 第二步：批量插入新数据
     insert_sql = """
-    INSERT INTO asset (ip, port, protocol, status, banner, fingerprint, scan_time, scan_time_str)
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+    INSERT INTO asset (ip, port, protocol, status, banner, fingerprint, headers, scan_time, scan_time_str)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
-    # 格式化数据（指纹列表转逗号分隔字符串）
+    # 格式化数据（指纹列表转逗号分隔字符串，headers转JSON字符串）
+    import json
     data_list = [
         (
             asset["ip"],
@@ -145,6 +148,7 @@ def insert_asset_to_mysql(conn, cursor, asset_list):
             asset["status"],
             asset["banner"][:255],  # 限制Banner长度，避免超出字段限制
             ",".join(asset["fingerprint"]),
+            json.dumps(asset.get("http_info", {}).get("headers", {})) if asset.get("http_info") else "{}",
             asset["scan_time"],
             asset["scan_time_str"]
         ) for asset in asset_list
@@ -179,6 +183,7 @@ def insert_asset_to_es(es, asset_list, index_name="cyberscan_asset"):
             "status": asset["status"],
             "banner": asset["banner"],
             "fingerprint": asset["fingerprint"],
+            "headers": asset.get("http_info", {}).get("headers", {}) if asset.get("http_info") else {},
             "scan_time": asset["scan_time"],
             "scan_time_str": asset["scan_time_str"]
         }
