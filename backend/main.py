@@ -8,7 +8,7 @@ from fastapi import FastAPI, Depends
 from fastapi.security import OAuth2PasswordBearer
 
 # 导入自定义模块
-from scan_core import (
+from scan_nmap import (
     init_scan_config
 )
 from db_operate import (
@@ -39,6 +39,7 @@ ALLOWED_IP_PREFIX = os.getenv("ALLOWED_IP_PREFIX")
 MAX_CONCURRENT = os.getenv("MAX_CONCURRENT")
 SCAN_TIMEOUT = os.getenv("SCAN_TIMEOUT")
 COMMON_PORTS = os.getenv("COMMON_PORTS")
+NMAP_PATH = os.getenv("NMAP_PATH", "nmap")
 SCAN_EXPIRE_TIME = int(os.getenv("SCAN_EXPIRE_TIME"))
 # 读取API配置
 API_HOST = os.getenv("API_HOST")
@@ -63,7 +64,7 @@ app = FastAPI(
 
 # 全局初始化数据库连接和扫描配置（启动时执行一次）
 # 扫描配置
-SCAN_CONFIG = init_scan_config(ALLOWED_IP_PREFIX, MAX_CONCURRENT, SCAN_TIMEOUT, COMMON_PORTS)
+SCAN_CONFIG = init_scan_config(ALLOWED_IP_PREFIX, MAX_CONCURRENT, SCAN_TIMEOUT, COMMON_PORTS, NMAP_PATH)
 # MySQL连接
 MYSQL_CONN, MYSQL_CURSOR = init_mysql_conn(MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_PWD, MYSQL_DB)
 # ES连接

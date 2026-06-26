@@ -61,6 +61,18 @@
                     <span class="info-value">{{ row.fingerprint.length > 0 ? row.fingerprint.join('、') : '未识别' }}</span>
                   </div>
                   
+                  <!-- 服务名称（Nmap） -->
+                  <div class="info-row" v-if="row.service_name">
+                    <span class="info-label">服务名称：</span>
+                    <span class="info-value">{{ row.service_name }}</span>
+                  </div>
+                  
+                  <!-- 产品版本（Nmap） -->
+                  <div class="info-row" v-if="row.product">
+                    <span class="info-label">产品版本：</span>
+                    <span class="info-value">{{ row.product }} {{ row.version || '' }}</span>
+                  </div>
+                  
                   <!-- HTTP状态码 -->
                   <div class="info-row" v-if="row.http_info">
                     <span class="info-label">HTTP状态码：</span>
@@ -119,6 +131,16 @@
           <div class="detail-item">
             <span class="detail-label">组件指纹：</span>
             <span class="detail-value">{{ currentAsset.fingerprint.length > 0 ? currentAsset.fingerprint.join('、') : '未识别' }}</span>
+          </div>
+          <!-- 服务名称（Nmap） -->
+          <div class="detail-item" v-if="currentAsset.service_name">
+            <span class="detail-label">服务名称：</span>
+            <span class="detail-value">{{ currentAsset.service_name }}</span>
+          </div>
+          <!-- 产品版本（Nmap） -->
+          <div class="detail-item" v-if="currentAsset.product">
+            <span class="detail-label">产品版本：</span>
+            <span class="detail-value">{{ currentAsset.product }} {{ currentAsset.version || '' }}</span>
           </div>
           <div class="detail-item" v-if="currentAsset.http_info">
             <span class="detail-label">HTTP状态码：</span>
@@ -204,7 +226,7 @@ const validateIp = (ip) => {
 
 // 处理查询/扫描（默认不刷新）
 const handleQuery = async (scanParams, callback) => {
-  const { ip, portOption, portRange } = scanParams
+  const { ip, portOption, portRange, scanMode } = scanParams
   
   // IP校验
   if (!ip) {
@@ -219,12 +241,13 @@ const handleQuery = async (scanParams, callback) => {
   }
 
   try {
-    console.log('调用API:', { ip, portOption, portRange })
+    console.log('调用API:', { ip, portOption, portRange, scanMode })
     // 调用后端接口，refresh=false（默认不刷新）
     const res = await queryAsset({ 
       ip: ip,
       port_option: portOption,
-      port_range: portRange
+      port_range: portRange,
+      scan_mode: scanMode
     })
     console.log('API返回:', res)
     if (res.code === 200) {
@@ -247,7 +270,7 @@ const handleQuery = async (scanParams, callback) => {
 
 // 处理刷新扫描（强制重新扫描）
 const handleRefresh = async (scanParams, callback) => {
-  const { ip, portOption, portRange } = scanParams
+  const { ip, portOption, portRange, scanMode } = scanParams
   
   if (!ip) {
     $message['info']('请输入IP地址')
@@ -267,7 +290,8 @@ const handleRefresh = async (scanParams, callback) => {
       ip: ip, 
       refresh: true,
       port_option: portOption,
-      port_range: portRange
+      port_range: portRange,
+      scan_mode: scanMode
     })
     if (res.code === 200) {
       tableData.value = res.data

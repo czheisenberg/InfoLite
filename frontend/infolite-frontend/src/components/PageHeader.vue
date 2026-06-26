@@ -39,6 +39,21 @@
             @keyup.enter="handleQuery"
           />
           
+          <!-- 扫描模式选择 -->
+          <div class="scan-mode-row">
+            <span class="form-label">扫描引擎</span>
+            <div class="mode-options">
+              <label class="mode-option">
+                <input type="radio" v-model="scanMode" value="nmap" />
+                <span>Nmap 引擎（推荐）</span>
+              </label>
+              <label class="mode-option">
+                <input type="radio" v-model="scanMode" value="socket" />
+                <span>Socket 引擎</span>
+              </label>
+            </div>
+          </div>
+
           <div class="form-buttons">
             <button 
               class="btn-primary" 
@@ -87,6 +102,9 @@ const emit = defineEmits(['logout', 'toggle-theme', 'query', 'refresh'])
 // 扫描输入
 const scanInput = ref('')
 
+// 扫描模式（nmap 或 socket）
+const scanMode = ref('nmap')
+
 // 加载状态
 const loading = ref(false)
 
@@ -116,13 +134,15 @@ const parseScanInput = (input) => {
     return {
       ip: fullMatch[1].trim(),
       portOption: 'custom',
-      portRange: fullMatch[2].trim()
+      portRange: fullMatch[2].trim(),
+      scanMode: scanMode.value
     }
   } else if (ipOnlyMatch) {
     return {
       ip: ipOnlyMatch[1].trim(),
       portOption: 'all',
-      portRange: '1-65535'
+      portRange: '1-65535',
+      scanMode: scanMode.value
     }
   } else {
     // 非指定格式，返回空对象
@@ -276,6 +296,34 @@ const handleKeyup = (event) => {
   gap: 10px;
   width: 100%;
   margin-top: 10px;
+}
+
+/* 扫描模式选择 */
+.scan-mode-row {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  width: 100%;
+}
+
+.mode-options {
+  display: flex;
+  gap: 20px;
+}
+
+.mode-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-primary);
+  font-family: 'Press Start 2P', monospace, 'SimHei', 'Microsoft YaHei';
+}
+
+.mode-option input[type="radio"] {
+  cursor: pointer;
+  accent-color: #4CAF50;
 }
 
 /* 主题切换按钮：像素风格 */
