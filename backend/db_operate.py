@@ -392,7 +392,7 @@ def create_es_subdomain_index(es, index_name="subdomain"):
 
 def insert_subdomain_to_mysql(conn, cursor, root_domain, subdomain_list):
     """
-    批量插入子域名数据到MySQL - 先删旧数据，再插新数据
+    批量插入子域名数据到MySQL - 先去重，再插入，冲突则更新
     :param conn: MySQL连接对象
     :param cursor: MySQL游标对象
     :param root_domain: 根域名
@@ -402,12 +402,56 @@ def insert_subdomain_to_mysql(conn, cursor, root_domain, subdomain_list):
     if not subdomain_list:
         return 0
     
+    unique_map = {}
+    for item in subdomain_list:
+        domain = item["domain"]
+        if domain in unique_map:
+            existing = unique_map[domain]
+            existing_ips = set(existing.get("ips", []))
+            new_ips = set(item.get("ips", []))
+            merged_ips = list(existing_ips | new_ips)
+            existing_source = existing.get("source", "")
+            new_source = item.get("source", "")
+            if existing_source and new_source and existing_source != new_source:
+                sources = set(existing_source.split(",")) | set(new_source.split(","))
+                merged_source = ",".join(sorted(sources))
+            else:
+                merged_source = existing_source or new_source
+            existing_status = existing.get("status", "unknown")
+            new_status = item.get("status", "unknown")
+            merged_status = "alive" if "alive" in [existing_status, new_status] else (existing_status or new_status)
+            unique_map[domain] = {
+                "domain": domain,
+                "ips": merged_ips,
+                "source": merged_source,
+                "status": merged_status,
+                "scan_time": item.get("scan_time", int(time.time())),
+                "scan_time_str": item.get("scan_time_str", time.strftime("%Y-%m-%d %H:%M:%S"))
+            }
+        else:
+            unique_map[domain] = {
+                "domain": domain,
+                "ips": item.get("ips", []),
+                "source": item.get("source", ""),
+                "status": item.get("status", "unknown"),
+                "scan_time": item.get("scan_time", int(time.time())),
+                "scan_time_str": item.get("scan_time_str", time.strftime("%Y-%m-%d %H:%M:%S"))
+            }
+    
+    unique_list = list(unique_map.values())
+    
     delete_sql = "DELETE FROM subdomain WHERE root_domain = %s"
     cursor.execute(delete_sql, (root_domain,))
     
     insert_sql = """
     INSERT INTO subdomain (root_domain, subdomain, ips, source, status, scan_time, scan_time_str)
     VALUES (%s, %s, %s, %s, %s, %s, %s)
+    ON DUPLICATE KEY UPDATE
+        ips = VALUES(ips),
+        source = VALUES(source),
+        status = VALUES(status),
+        scan_time = VALUES(scan_time),
+        scan_time_str = VALUES(scan_time_str)
     """
     data_list = [
         (
@@ -418,12 +462,12 @@ def insert_subdomain_to_mysql(conn, cursor, root_domain, subdomain_list):
             item.get("status", "unknown"),
             item.get("scan_time", int(time.time())),
             item.get("scan_time_str", time.strftime("%Y-%m-%d %H:%M:%S"))
-        ) for item in subdomain_list
+        ) for item in unique_list
     ]
     try:
         cursor.executemany(insert_sql, data_list)
         conn.commit()
-        insert_count = cursor.rowcount
+        insert_count = len(unique_list)
         print(f"MySQL插入子域名成功: {insert_count} 条")
         return insert_count
     except Exception as e:
@@ -432,7 +476,7 @@ def insert_subdomain_to_mysql(conn, cursor, root_domain, subdomain_list):
 
 def insert_subdomain_to_es(es, root_domain, subdomain_list, index_name="subdomain"):
     """
-    批量插入子域名数据到ES
+    批量插入子域名数据到ES - 先去重合并，再写入
     :param es: ES连接对象
     :param root_domain: 根域名
     :param subdomain_list: 子域名数据列表
@@ -442,8 +486,46 @@ def insert_subdomain_to_es(es, root_domain, subdomain_list, index_name="subdomai
     if not subdomain_list:
         return 0
     
-    bulk_data = []
+    unique_map = {}
     for item in subdomain_list:
+        domain = item["domain"]
+        if domain in unique_map:
+            existing = unique_map[domain]
+            existing_ips = set(existing.get("ips", []))
+            new_ips = set(item.get("ips", []))
+            merged_ips = list(existing_ips | new_ips)
+            existing_source = existing.get("source", "")
+            new_source = item.get("source", "")
+            if existing_source and new_source and existing_source != new_source:
+                sources = set(existing_source.split(",")) | set(new_source.split(","))
+                merged_source = ",".join(sorted(sources))
+            else:
+                merged_source = existing_source or new_source
+            existing_status = existing.get("status", "unknown")
+            new_status = item.get("status", "unknown")
+            merged_status = "alive" if "alive" in [existing_status, new_status] else (existing_status or new_status)
+            unique_map[domain] = {
+                "domain": domain,
+                "ips": merged_ips,
+                "source": merged_source,
+                "status": merged_status,
+                "scan_time": item.get("scan_time", int(time.time())),
+                "scan_time_str": item.get("scan_time_str", time.strftime("%Y-%m-%d %H:%M:%S"))
+            }
+        else:
+            unique_map[domain] = {
+                "domain": domain,
+                "ips": item.get("ips", []),
+                "source": item.get("source", ""),
+                "status": item.get("status", "unknown"),
+                "scan_time": item.get("scan_time", int(time.time())),
+                "scan_time_str": item.get("scan_time_str", time.strftime("%Y-%m-%d %H:%M:%S"))
+            }
+    
+    unique_list = list(unique_map.values())
+    
+    bulk_data = []
+    for item in unique_list:
         doc = {
             "root_domain": root_domain,
             "subdomain": item["domain"],
