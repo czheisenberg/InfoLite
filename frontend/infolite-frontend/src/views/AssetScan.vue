@@ -219,12 +219,14 @@ const handleQuery = async (scanParams, callback) => {
   }
 
   try {
+    console.log('调用API:', { ip, portOption, portRange })
     // 调用后端接口，refresh=false（默认不刷新）
     const res = await queryAsset({ 
       ip: ip,
       port_option: portOption,
       port_range: portRange
     })
+    console.log('API返回:', res)
     if (res.code === 200) {
       tableData.value = res.data
       // 提示成功

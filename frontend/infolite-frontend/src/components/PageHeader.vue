@@ -29,52 +29,32 @@
     <div class="header-form">
       <div class="form-container">
         <div class="form-row">
-          <label for="ipInput" class="form-label">目标IP</label>
+          <label for="scanInput" class="form-label">扫描目标</label>
           <input
-            id="ipInput"
-            v-model="scanForm.ip"
+            id="scanInput"
+            v-model="scanInput"
             type="text"
             class="form-input"
-            placeholder="请输入要扫描的IP（如127.0.0.1）"
+            placeholder='请输入扫描目标，如：ip="127.0.0.1" && port="1-100" 或 ip="127.0.0.1"'
             @keyup.enter="handleQuery"
           />
-          
-          <label for="portOption" class="form-label">端口选项</label>
-          <select 
-            id="portOption" 
-            v-model="scanForm.portOption" 
-            class="form-input"
-          >
-            <option value="common">常用端口（1-1024）</option>
-            <option value="custom">自定义端口范围</option>
-          </select>
-          
-          <template v-if="scanForm.portOption === 'custom'">
-            <input
-              v-model="scanForm.portRange"
-              type="text"
-              class="form-input"
-              placeholder="请输入端口范围（如1-65535）"
-              style="max-width: 180px;"
-            />
-          </template>
           
           <div class="form-buttons">
             <button 
               class="btn-primary" 
               @click="handleQuery"
-              :disabled="loading || !scanForm.ip"
+              :disabled="loading || !scanInput.trim()"
             >
               <span v-if="loading">扫描中...</span>
-              <span v-else>查询/扫描</span>
+              <span v-else>查询</span>
             </button>
             <button 
               class="btn-secondary" 
               @click="handleRefresh" 
-              :disabled="loading || !scanForm.ip"
+              :disabled="loading || !scanInput.trim()"
             >
               <span v-if="loading">刷新中...</span>
-              <span v-else>刷新扫描</span>
+              <span v-else>扫描</span>
             </button>
           </div>
         </div>
@@ -85,6 +65,9 @@
 
 <script setup>
 import { ref, reactive } from 'vue'
+// 引入Pixelium Design的Message组件
+import { Message } from '@pixelium/web-vue/es'
+const $message = Message
 
 // 定义props
 const props = defineProps({
@@ -101,12 +84,8 @@ const props = defineProps({
 // 定义事件
 const emit = defineEmits(['logout', 'toggle-theme', 'query', 'refresh'])
 
-// 扫描表单
-const scanForm = reactive({
-  ip: '',
-  portOption: 'common', // common: 常用端口(1-1024), custom: 自定义端口范围
-  portRange: '1-65535' // 默认端口范围
-})
+// 扫描输入
+const scanInput = ref('')
 
 // 加载状态
 const loading = ref(false)
@@ -121,26 +100,70 @@ const toggleTheme = () => {
   emit('toggle-theme')
 }
 
+// 解析输入格式
+const parseScanInput = (input) => {
+  const trimmedInput = input.trim()
+  
+  // 匹配 ip="xxx" && port="xxx" 格式
+  const fullRegex = /^ip="([^"]+)"\s*&&\s*port="([^"]+)"$/i
+  const fullMatch = trimmedInput.match(fullRegex)
+  
+  // 匹配只输入 ip="xxx" 格式
+  const ipOnlyRegex = /^ip="([^"]+)"$/i
+  const ipOnlyMatch = trimmedInput.match(ipOnlyRegex)
+  
+  if (fullMatch) {
+    return {
+      ip: fullMatch[1].trim(),
+      portOption: 'custom',
+      portRange: fullMatch[2].trim()
+    }
+  } else if (ipOnlyMatch) {
+    return {
+      ip: ipOnlyMatch[1].trim(),
+      portOption: 'all',
+      portRange: '1-65535'
+    }
+  } else {
+    // 非指定格式，返回空对象
+    return null
+  }
+}
+
 // 处理查询/扫描
 const handleQuery = () => {
+  if (!scanInput.value.trim()) {
+    return
+  }
+  
+  const scanParams = parseScanInput(scanInput.value)
+  if (!scanParams) {
+    // 输入格式不正确，提示用户
+    $message['info']('请使用正确的输入格式：ip="127.0.0.1" && port="1-100" 或 ip="127.0.0.1"')
+    return
+  }
+  
   loading.value = true
-  emit('query', {
-    ip: scanForm.ip,
-    portOption: scanForm.portOption,
-    portRange: scanForm.portRange
-  }, () => {
+  emit('query', scanParams, () => {
     loading.value = false
   })
 }
 
 // 处理刷新扫描
 const handleRefresh = () => {
+  if (!scanInput.value.trim()) {
+    return
+  }
+  
+  const scanParams = parseScanInput(scanInput.value)
+  if (!scanParams) {
+    // 输入格式不正确，提示用户
+    $message['info']('请使用正确的输入格式：ip="127.0.0.1" && port="1-100" 或 ip="127.0.0.1"')
+    return
+  }
+  
   loading.value = true
-  emit('refresh', {
-    ip: scanForm.ip,
-    portOption: scanForm.portOption,
-    portRange: scanForm.portRange
-  }, () => {
+  emit('refresh', scanParams, () => {
     loading.value = false
   })
 }
@@ -217,7 +240,8 @@ const handleKeyup = (event) => {
 
 .form-row {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 15px;
   flex-wrap: wrap;
 }
@@ -230,9 +254,8 @@ const handleKeyup = (event) => {
 }
 
 .form-input {
-  flex: 1;
-  max-width: 300px;
-  padding: 10px;
+  width: 100%;
+  height: 3rem;
   border: 2px solid var(--border-color);
   border-radius: 4px;
   background-color: var(--bg-input);
@@ -251,6 +274,8 @@ const handleKeyup = (event) => {
 .form-buttons {
   display: flex;
   gap: 10px;
+  width: 100%;
+  margin-top: 10px;
 }
 
 /* 主题切换按钮：像素风格 */

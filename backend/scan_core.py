@@ -242,6 +242,9 @@ def ip_full_scan(ip, scan_config):
             # 解析失败，使用默认端口
             ports = scan_config["ports"]
             print(f"[警告] 端口范围格式错误: {port_range}，使用默认端口列表")
+    elif port_option == "all":
+        # 扫描所有端口：1-65535
+        ports = list(range(1, 65536))
     else:
         # 默认使用配置中的端口列表
         ports = scan_config["ports"]

@@ -3,7 +3,7 @@ import axios from 'axios'
 // 创建axios实例
 const service = axios.create({
   baseURL: '/api', // 匹配Vite代理的/api前缀
-  timeout: 60000,
+  timeout: 300000, // 5分钟超时，用于扫描所有端口
   headers: {
     'Content-Type': 'application/json;charset=utf-8'
   }
