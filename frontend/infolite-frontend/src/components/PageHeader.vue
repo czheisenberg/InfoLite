@@ -9,6 +9,13 @@
           {{ username }}
         </span>
         <button 
+          class="btn-secondary nav-tab-btn nav-tab-subdomain" 
+          @click="goToSubdomainScan"
+          title="子域名扫描"
+        >
+          子域名
+        </button>
+        <button 
           class="btn-secondary nav-tab-btn" 
           @click="goToNmapScan"
           title="Nmap扫描"
@@ -128,6 +135,11 @@ const toggleTheme = () => {
 // 跳转到Nmap扫描页面
 const goToNmapScan = () => {
   window.location.href = '/nmap-scan'
+}
+
+// 跳转到子域名扫描页面
+const goToSubdomainScan = () => {
+  window.location.href = '/subdomain-scan'
 }
 
 // 解析输入格式
@@ -407,6 +419,10 @@ const handleKeyup = (event) => {
 
 .nav-tab-btn {
   background: #FF9800 !important;
+}
+
+.nav-tab-subdomain {
+  background: #9C27B0 !important;
 }
 
 /* 响应式适配 */

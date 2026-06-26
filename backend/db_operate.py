@@ -328,6 +328,192 @@ def update_user_login_time(conn, cursor, user_id):
         print(f"MySQL更新用户登录时间失败: {str(e)}")
         return False
 
+def create_mysql_subdomain_table(conn, cursor):
+    """
+    创建MySQL子域名表 - 若表不存在则创建
+    :param conn: MySQL连接对象
+    :param cursor: MySQL游标对象
+    :return: None
+    """
+    create_sql = """
+    CREATE TABLE IF NOT EXISTS subdomain (
+        id INT AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID',
+        root_domain VARCHAR(255) NOT NULL COMMENT '根域名',
+        subdomain VARCHAR(255) NOT NULL COMMENT '子域名',
+        ips VARCHAR(512) COMMENT '解析IP（逗号分隔）',
+        source VARCHAR(50) COMMENT '数据来源（crtsh/chaziyu/dict/混合）',
+        status VARCHAR(20) DEFAULT 'unknown' COMMENT '状态（alive/unknown）',
+        scan_time INT NOT NULL COMMENT '扫描时间戳',
+        scan_time_str VARCHAR(20) NOT NULL COMMENT '扫描时间字符串',
+        create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '入库时间',
+        UNIQUE KEY uk_root_sub (root_domain, subdomain)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='子域名表';
+    """
+    try:
+        cursor.execute(create_sql)
+        conn.commit()
+        print("MySQL子域名表初始化成功（存在则跳过）")
+    except Exception as e:
+        conn.rollback()
+        raise Exception(f"创建MySQL子域名表失败: {str(e)}")
+
+def create_es_subdomain_index(es, index_name="subdomain"):
+    """
+    创建ES子域名索引 - 若索引不存在则创建
+    :param es: ES连接对象
+    :param index_name: 索引名
+    :return: None
+    """
+    index_mapping = {
+        "mappings": {
+            "properties": {
+                "root_domain": {"type": "keyword"},
+                "subdomain": {"type": "keyword"},
+                "ips": {"type": "keyword"},
+                "source": {"type": "keyword"},
+                "status": {"type": "keyword"},
+                "scan_time": {"type": "integer"},
+                "scan_time_str": {"type": "keyword"}
+            }
+        },
+        "settings": {
+            "number_of_shards": 1,
+            "number_of_replicas": 0
+        }
+    }
+    try:
+        if not es.indices.exists(index=index_name):
+            es.indices.create(index=index_name, body=index_mapping)
+            print(f"ES子域名索引 {index_name} 初始化成功")
+        else:
+            print(f"ES子域名索引 {index_name} 已存在，跳过初始化")
+    except Exception as e:
+        raise Exception(f"创建ES子域名索引失败: {str(e)}")
+
+def insert_subdomain_to_mysql(conn, cursor, root_domain, subdomain_list):
+    """
+    批量插入子域名数据到MySQL - 先删旧数据，再插新数据
+    :param conn: MySQL连接对象
+    :param cursor: MySQL游标对象
+    :param root_domain: 根域名
+    :param subdomain_list: 子域名数据列表
+    :return: 插入成功的条数
+    """
+    if not subdomain_list:
+        return 0
+    
+    delete_sql = "DELETE FROM subdomain WHERE root_domain = %s"
+    cursor.execute(delete_sql, (root_domain,))
+    
+    insert_sql = """
+    INSERT INTO subdomain (root_domain, subdomain, ips, source, status, scan_time, scan_time_str)
+    VALUES (%s, %s, %s, %s, %s, %s, %s)
+    """
+    data_list = [
+        (
+            root_domain,
+            item["domain"],
+            ",".join(item.get("ips", [])),
+            item.get("source", ""),
+            item.get("status", "unknown"),
+            item.get("scan_time", int(time.time())),
+            item.get("scan_time_str", time.strftime("%Y-%m-%d %H:%M:%S"))
+        ) for item in subdomain_list
+    ]
+    try:
+        cursor.executemany(insert_sql, data_list)
+        conn.commit()
+        insert_count = cursor.rowcount
+        print(f"MySQL插入子域名成功: {insert_count} 条")
+        return insert_count
+    except Exception as e:
+        conn.rollback()
+        raise Exception(f"MySQL插入子域名失败: {str(e)}")
+
+def insert_subdomain_to_es(es, root_domain, subdomain_list, index_name="subdomain"):
+    """
+    批量插入子域名数据到ES
+    :param es: ES连接对象
+    :param root_domain: 根域名
+    :param subdomain_list: 子域名数据列表
+    :param index_name: ES索引名
+    :return: 插入成功的条数
+    """
+    if not subdomain_list:
+        return 0
+    
+    bulk_data = []
+    for item in subdomain_list:
+        doc = {
+            "root_domain": root_domain,
+            "subdomain": item["domain"],
+            "ips": ",".join(item.get("ips", [])),
+            "source": item.get("source", ""),
+            "status": item.get("status", "unknown"),
+            "scan_time": item.get("scan_time", int(time.time())),
+            "scan_time_str": item.get("scan_time_str", time.strftime("%Y-%m-%d %H:%M:%S"))
+        }
+        bulk_data.append({
+            "_index": index_name,
+            "_id": f"{root_domain}-{item['domain']}",
+            "_source": doc
+        })
+    
+    try:
+        success, failed = bulk(es, bulk_data)
+        print(f"ES插入子域名成功: {success} 条，失败: {failed} 条")
+        return success
+    except Exception as e:
+        raise Exception(f"ES插入子域名失败: {str(e)}")
+
+def query_subdomain_from_db(root_domain, mysql_conn, mysql_cursor, es, scan_expire_time, index_name="subdomain"):
+    """
+    从数据库查询子域名数据 - 优先查ES，校验扫描有效期
+    :param root_domain: 根域名
+    :param mysql_conn: MySQL连接
+    :param mysql_cursor: MySQL游标
+    :param es: ES连接
+    :param scan_expire_time: 扫描有效期（秒）
+    :param index_name: ES索引名
+    :return: 字典 - {is_valid: 是否有效, data: 子域名数据列表}
+    """
+    try:
+        es_query = {
+            "query": {
+                "term": {
+                    "root_domain": root_domain
+                }
+            }
+        }
+        es_result = es.search(index=index_name, body=es_query, size=10000)
+        raw_list = [hit["_source"] for hit in es_result["hits"]["hits"] if hit.get("_source")]
+        if not raw_list:
+            return {"is_valid": False, "data": []}
+        
+        current_time = int(time.time())
+        valid_list = [
+            item for item in raw_list
+            if (item.get("scan_time", 0) + scan_expire_time) > current_time
+        ]
+        
+        if not valid_list:
+            return {"is_valid": False, "data": []}
+        
+        valid_list.sort(key=lambda x: x["subdomain"])
+        formatted_list = []
+        for item in valid_list:
+            formatted_list.append({
+                "domain": item["subdomain"],
+                "ips": item["ips"].split(",") if item["ips"] else [],
+                "source": item["source"],
+                "status": item["status"]
+            })
+        
+        return {"is_valid": True, "data": formatted_list}
+    except Exception as e:
+        print(f"子域名数据库查询失败: {str(e)}")
+        return {"is_valid": False, "data": []}
+
 def close_db_conn(mysql_conn, mysql_cursor, es):
     """
     关闭数据库连接 - 避免连接泄漏

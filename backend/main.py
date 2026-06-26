@@ -13,7 +13,8 @@ from scan_nmap import (
 )
 from db_operate import (
     init_mysql_conn, init_es_conn, create_mysql_asset_table,
-    create_es_asset_index, create_mysql_user_table
+    create_es_asset_index, create_mysql_user_table,
+    create_mysql_subdomain_table, create_es_subdomain_index
 )
 
 # 导入依赖模块
@@ -72,7 +73,9 @@ ES_CONN = init_es_conn(ES_HOST, ES_PORT)
 # 初始化MySQL表和ES索引
 create_mysql_asset_table(MYSQL_CONN, MYSQL_CURSOR)
 create_mysql_user_table(MYSQL_CONN, MYSQL_CURSOR)
+create_mysql_subdomain_table(MYSQL_CONN, MYSQL_CURSOR)
 create_es_asset_index(ES_CONN)
+create_es_subdomain_index(ES_CONN)
 
 # 将全局变量赋值给deps模块
 api.deps.mysql_conn = MYSQL_CONN

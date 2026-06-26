@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import AssetScan from '../views/AssetScan.vue'
 import NmapScan from '../views/NmapScan.vue'
+import SubdomainScan from '../views/SubdomainScan.vue'
 import Login from '../views/Login.vue'
 
 const routes = [
@@ -19,6 +20,15 @@ const routes = [
     component: NmapScan,
     meta: { 
       title: 'InfoLite - Nmap 扫描',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/subdomain-scan',
+    name: 'SubdomainScan',
+    component: SubdomainScan,
+    meta: { 
+      title: 'InfoLite - 子域名扫描',
       requiresAuth: true
     }
   },
