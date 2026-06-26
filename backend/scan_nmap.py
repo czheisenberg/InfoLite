@@ -208,9 +208,79 @@ def _parse_nmap_result(nm, ip, scan_config):
     return asset_list
 
 
+def _split_port_range(port_range_str, chunk_size=1000):
+    """
+    将端口范围拆分为多个分块
+    :param port_range_str: 端口范围字符串，如 "1-65535" 或 "80,443,8080"
+    :param chunk_size: 每个分块的大小
+    :return: 分块列表，每个元素是端口范围字符串
+    """
+    chunks = []
+    
+    if "," in port_range_str:
+        port_list = []
+        for part in port_range_str.split(","):
+            part = part.strip()
+            if "-" in part:
+                start, end = map(int, part.split("-"))
+                port_list.extend(range(start, end + 1))
+            else:
+                port_list.append(int(part))
+        port_list = sorted(set(port_list))
+        for i in range(0, len(port_list), chunk_size):
+            chunk_ports = port_list[i:i + chunk_size]
+            chunks.append(",".join(map(str, chunk_ports)))
+    elif "-" in port_range_str:
+        start, end = map(int, port_range_str.split("-"))
+        if end - start + 1 <= chunk_size:
+            chunks.append(port_range_str)
+        else:
+            first_chunk_end = min(start + 1023, end)
+            if start <= first_chunk_end:
+                chunks.append(f"{start}-{first_chunk_end}")
+            current = first_chunk_end + 1
+            while current <= end:
+                chunk_end = min(current + chunk_size - 1, end)
+                chunks.append(f"{current}-{chunk_end}")
+                current = chunk_end + 1
+    else:
+        chunks.append(port_range_str)
+    
+    return chunks
+
+
+def _quick_port_discovery(nm, ip, ports_str, scan_config):
+    """
+    快速端口发现（仅检测端口是否开放，不做版本探测）
+    :param nm: nmap PortScanner 对象
+    :param ip: 目标IP
+    :param ports_str: 端口范围字符串
+    :param scan_config: 扫描配置
+    :return: 开放端口列表
+    """
+    open_ports = []
+    try:
+        quick_args = f"-sT -T4 --host-timeout {scan_config['timeout'] * 30}s --max-retries 2"
+        print(f"[Nmap快速发现] 端口: {ports_str}, 参数: {quick_args}")
+        nm.scan(hosts=ip, ports=ports_str, arguments=quick_args)
+        
+        if ip in nm.all_hosts():
+            host = nm[ip]
+            tcp_ports = host.get('tcp', {})
+            for port, port_info in tcp_ports.items():
+                if port_info.get('state') == 'open':
+                    open_ports.append(port)
+        print(f"[Nmap快速发现] 开放端口: {open_ports}")
+    except Exception as e:
+        print(f"[Nmap快速发现] 异常: {str(e)}")
+    
+    return open_ports
+
+
 def ip_full_scan(ip, scan_config):
     start_time = time.time()
-    asset_list = []
+    all_assets = []
+    all_open_ports = set()
 
     port_option = scan_config.get("port_option", "common")
     port_range = scan_config.get("port_range", "1-65535")
@@ -224,17 +294,40 @@ def ip_full_scan(ip, scan_config):
     else:
         ports_str = ",".join([str(p) for p in scan_config.get("ports", [80, 443, 22, 3389, 8080])])
 
-    print(f"[扫描开始] IP: {ip}，端口: {ports_str}，工具: Nmap")
+    is_full_scan = (port_option == "all") or (port_option == "custom" and "-" in port_range and int(port_range.split("-")[1]) - int(port_range.split("-")[0]) + 1 > 2000)
+
+    print(f"[扫描开始] IP: {ip}，端口: {ports_str}，工具: Nmap，全量扫描: {is_full_scan}")
 
     try:
         nm = nmap.PortScanner(nmap_search_path=(scan_config.get("nmap_path", "nmap"),))
 
-        scan_args = f"-sV -T4 --host-timeout {scan_config['timeout'] * 60}s"
-        print(f"[Nmap] 执行扫描，参数: {scan_args}")
+        if is_full_scan:
+            chunks = _split_port_range(ports_str, chunk_size=5000)
+            print(f"[分块扫描] 共 {len(chunks)} 个分块: {chunks}")
 
-        nm.scan(hosts=ip, ports=ports_str, arguments=scan_args)
+            for idx, chunk in enumerate(chunks, 1):
+                chunk_start = time.time()
+                print(f"[分块扫描] 第 {idx}/{len(chunks)} 块: {chunk}")
 
-        asset_list = _parse_nmap_result(nm, ip, scan_config)
+                chunk_open_ports = _quick_port_discovery(nm, ip, chunk, scan_config)
+                all_open_ports.update(chunk_open_ports)
+
+                chunk_cost = round(time.time() - chunk_start, 2)
+                print(f"[分块扫描] 第 {idx} 块完成，发现 {len(chunk_open_ports)} 个开放端口，耗时 {chunk_cost}s")
+
+            print(f"[分块扫描] 全部完成，累计开放端口: {sorted(all_open_ports)}")
+
+            if all_open_ports:
+                version_ports_str = ",".join(map(str, sorted(all_open_ports)))
+                version_args = f"-sV -T4 --host-timeout {scan_config['timeout'] * 120}s"
+                print(f"[版本探测] 对 {len(all_open_ports)} 个开放端口进行版本识别，参数: {version_args}")
+                nm.scan(hosts=ip, ports=version_ports_str, arguments=version_args)
+                all_assets = _parse_nmap_result(nm, ip, scan_config)
+        else:
+            scan_args = f"-sV -T4 --host-timeout {scan_config['timeout'] * 60}s"
+            print(f"[Nmap] 执行扫描，参数: {scan_args}")
+            nm.scan(hosts=ip, ports=ports_str, arguments=scan_args)
+            all_assets = _parse_nmap_result(nm, ip, scan_config)
 
     except nmap.PortScannerError as e:
         print(f"[Nmap错误] PortScannerError: {str(e)}")
@@ -243,5 +336,5 @@ def ip_full_scan(ip, scan_config):
         print(f"[扫描异常] {str(e)}")
 
     scan_cost = round(time.time() - start_time, 2)
-    print(f"[扫描完成] IP: {ip}，资产数: {len(asset_list)}，耗时: {scan_cost}s")
-    return asset_list
+    print(f"[扫描完成] IP: {ip}，资产数: {len(all_assets)}，耗时: {scan_cost}s")
+    return all_assets
