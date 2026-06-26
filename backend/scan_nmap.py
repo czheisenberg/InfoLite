@@ -338,3 +338,39 @@ def ip_full_scan(ip, scan_config):
     scan_cost = round(time.time() - start_time, 2)
     print(f"[扫描完成] IP: {ip}，资产数: {len(all_assets)}，耗时: {scan_cost}s")
     return all_assets
+
+
+def custom_nmap_scan(ip, scan_config, custom_args="", ports=""):
+    """
+    自定义 Nmap 扫描 - 用户手动指定参数
+    :param ip: 目标IP
+    :param scan_config: 扫描配置
+    :param custom_args: 自定义 nmap 参数
+    :param ports: 端口范围（可选，为空则使用默认）
+    :return: 资产列表
+    """
+    start_time = time.time()
+    all_assets = []
+
+    print(f"[自定义扫描] IP: {ip}，参数: {custom_args}，端口: {ports}")
+
+    try:
+        nm = nmap.PortScanner(nmap_search_path=(scan_config.get("nmap_path", "nmap"),))
+
+        if ports:
+            nm.scan(hosts=ip, ports=ports, arguments=custom_args)
+        else:
+            nm.scan(hosts=ip, arguments=custom_args)
+
+        all_assets = _parse_nmap_result(nm, ip, scan_config)
+
+    except nmap.PortScannerError as e:
+        print(f"[Nmap错误] PortScannerError: {str(e)}")
+        raise Exception(f"Nmap扫描失败: {str(e)}")
+    except Exception as e:
+        print(f"[扫描异常] {str(e)}")
+        raise Exception(f"扫描异常: {str(e)}")
+
+    scan_cost = round(time.time() - start_time, 2)
+    print(f"[自定义扫描完成] IP: {ip}，资产数: {len(all_assets)}，耗时: {scan_cost}s")
+    return all_assets

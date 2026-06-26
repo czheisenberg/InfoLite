@@ -1,7 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
-// 引入资产扫描页面
 import AssetScan from '../views/AssetScan.vue'
-// 引入登录页面
+import NmapScan from '../views/NmapScan.vue'
 import Login from '../views/Login.vue'
 
 const routes = [
@@ -11,6 +10,15 @@ const routes = [
     component: AssetScan,
     meta: { 
       title: 'InfoLite - 资产扫描查询',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/nmap-scan',
+    name: 'NmapScan',
+    component: NmapScan,
+    meta: { 
+      title: 'InfoLite - Nmap 扫描',
       requiresAuth: true
     }
   },

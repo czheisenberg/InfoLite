@@ -9,6 +9,13 @@
           {{ username }}
         </span>
         <button 
+          class="btn-secondary nav-tab-btn" 
+          @click="goToNmapScan"
+          title="Nmap扫描"
+        >
+          Nmap 扫描
+        </button>
+        <button 
           class="btn-secondary" 
           @click="handleLogout"
           title="退出登录"
@@ -116,6 +123,11 @@ const handleLogout = () => {
 // 切换主题
 const toggleTheme = () => {
   emit('toggle-theme')
+}
+
+// 跳转到Nmap扫描页面
+const goToNmapScan = () => {
+  window.location.href = '/nmap-scan'
 }
 
 // 解析输入格式
@@ -391,6 +403,10 @@ const handleKeyup = (event) => {
   cursor: not-allowed;
   transform: none;
   box-shadow: 3px 3px 0 var(--border-color);
+}
+
+.nav-tab-btn {
+  background: #FF9800 !important;
 }
 
 /* 响应式适配 */

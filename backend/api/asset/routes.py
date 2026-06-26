@@ -4,7 +4,7 @@
 from fastapi import APIRouter, Query, Depends, HTTPException
 from fastapi.responses import JSONResponse
 
-from scan_nmap import check_ip_allowed as check_ip_allowed_nmap, ip_full_scan as ip_full_scan_nmap
+from scan_nmap import check_ip_allowed as check_ip_allowed_nmap, ip_full_scan as ip_full_scan_nmap, custom_nmap_scan
 from scan_core import check_ip_allowed as check_ip_allowed_socket, ip_full_scan as ip_full_scan_socket
 from db_operate import query_asset_from_db, insert_asset_to_mysql, insert_asset_to_es
 from api.deps import get_db
@@ -98,6 +98,65 @@ async def query_asset(
             }
         )
     
+    except HTTPException as e:
+        return JSONResponse(
+            status_code=e.status_code,
+            content={"code": e.status_code, "msg": e.detail, "data": []}
+        )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"code": 500, "msg": f"服务器内部错误：{str(e)}", "data": []}
+        )
+
+
+@router.get("/nmap-scan", summary="Nmap自定义扫描接口")
+async def nmap_custom_scan(
+    ip: str = Query(..., description="目标IP地址"),
+    ports: str = Query("", description="端口范围，如 1-65535 或 80,443"),
+    scan_args: str = Query("", description="Nmap扫描参数，如 -sV -T4 -O"),
+    save_to_db: bool = Query(True, description="是否将结果保存到数据库"),
+    current_user: dict = Depends(lambda: None),
+    db: dict = Depends(get_db)
+):
+    """
+    Nmap自定义扫描接口 - 用户手动指定扫描参数
+    """
+    try:
+        ip_parts = ip.split(".")
+        if len(ip_parts) != 4 or not all(part.isdigit() and 0 <= int(part) <= 255 for part in ip_parts):
+            raise HTTPException(status_code=400, detail=f"IP地址格式错误：{ip}")
+
+        if not check_ip_allowed_nmap(ip, db["scan_config"]["allowed_ip"]):
+            raise HTTPException(status_code=403, detail=f"IP {ip} 不在扫描白名单内，禁止扫描！")
+
+        if not scan_args.strip():
+            scan_args = "-sV -T4"
+
+        asset_list = custom_nmap_scan(
+            ip=ip,
+            scan_config=db["scan_config"],
+            custom_args=scan_args,
+            ports=ports
+        )
+
+        if save_to_db and asset_list:
+            insert_asset_to_mysql(db["mysql_conn"], db["mysql_cursor"], asset_list)
+            insert_asset_to_es(db["es_conn"], asset_list)
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "code": 200,
+                "msg": "Nmap自定义扫描成功",
+                "data": asset_list,
+                "scan_type": "custom_nmap",
+                "scan_args": scan_args,
+                "target_ip": ip,
+                "ports": ports
+            }
+        )
+
     except HTTPException as e:
         return JSONResponse(
             status_code=e.status_code,

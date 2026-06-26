@@ -43,3 +43,20 @@ export const getAssetList = (params) => {
     params
   })
 }
+
+/**
+ * Nmap自定义扫描
+ * @param {Object} params - 扫描参数
+ * @param {string} params.ip - 目标IP
+ * @param {string} params.ports - 端口范围
+ * @param {string} params.scan_args - Nmap参数
+ * @param {boolean} params.save_to_db - 是否保存到数据库
+ * @returns {Promise} - 扫描结果
+ */
+export const nmapCustomScan = (params) => {
+  return request({
+    url: '/asset/nmap-scan',
+    method: 'get',
+    params
+  })
+}
