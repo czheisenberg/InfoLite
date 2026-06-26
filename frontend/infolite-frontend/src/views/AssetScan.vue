@@ -1,6 +1,5 @@
 <template>
   <div class="asset-scan-page">
-    <!-- 页面头部 -->
     <PageHeader 
       :username="username"
       :theme="theme"
@@ -9,6 +8,57 @@
       @query="handleQuery"
       @refresh="handleRefresh"
     />
+
+    <!-- Hero 区域 -->
+    <div class="hero-section" v-if="!hasResult">
+      <div class="hero-content">
+        <div class="hero-badge">🚀 InfoLite 测绘平台</div>
+        <h1 class="hero-title">
+          <span class="title-line">网络空间</span>
+          <span class="title-line highlight">资产探测引擎</span>
+        </h1>
+        <p class="hero-desc">
+          轻量级网络空间测绘平台，支持端口探测、指纹识别、子域名扫描
+        </p>
+      </div>
+    </div>
+
+    <!-- 功能卡片区域 -->
+    <div class="features-section" v-if="!hasResult">
+      <div class="section-header">
+        <h2 class="section-title">核心功能</h2>
+        <p class="section-subtitle">三大核心模块，覆盖网络测绘关键能力</p>
+      </div>
+      <div class="feature-cards">
+        <div class="feature-card feature-asset" @click="scrollToSearch">
+          <div class="feature-icon">🔍</div>
+          <h3 class="feature-title">资产扫描</h3>
+          <p class="feature-desc">端口探测 + 指纹识别，快速发现目标资产</p>
+          <div class="feature-tags">
+            <span class="feature-tag">Nmap引擎</span>
+            <span class="feature-tag">Socket引擎</span>
+          </div>
+        </div>
+        <div class="feature-card feature-nmap" @click="goToNmapScan">
+          <div class="feature-icon">⚡</div>
+          <h3 class="feature-title">Nmap 扫描</h3>
+          <p class="feature-desc">自定义参数，灵活调用成熟扫描工具</p>
+          <div class="feature-tags">
+            <span class="feature-tag">自定义参数</span>
+            <span class="feature-tag">版本探测</span>
+          </div>
+        </div>
+        <div class="feature-card feature-subdomain" @click="goToSubdomainScan">
+          <div class="feature-icon">🌐</div>
+          <h3 class="feature-title">子域名扫描</h3>
+          <p class="feature-desc">多源聚合 + 字典爆破，全面发现子域名</p>
+          <div class="feature-tags">
+            <span class="feature-tag">crt.sh</span>
+            <span class="feature-tag">chaziyu</span>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- 扫描结果 -->
     <div class="scan-result-card" v-if="hasResult">
@@ -198,6 +248,18 @@ const handleLogout = () => {
   localStorage.removeItem('token')
   localStorage.removeItem('username')
   window.location.href = '/login'
+}
+
+const goToNmapScan = () => {
+  window.location.href = '/nmap-scan'
+}
+
+const goToSubdomainScan = () => {
+  window.location.href = '/subdomain-scan'
+}
+
+const scrollToSearch = () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 // 扫描表单数据
@@ -403,7 +465,6 @@ const getCardHeaders = (row) => {
 /* 页面整体样式：替换为CSS变量 👇 */
 .asset-scan-page {
   max-width: 1400px;
-  /* width: 100%; */
   margin: 0 auto;
   padding: 20px;
   background-color: var(--bg-main);
@@ -411,11 +472,168 @@ const getCardHeaders = (row) => {
   font-family: 'Press Start 2P', monospace;
 }
 
+/* Hero 区域 */
+.hero-section {
+  text-align: center;
+  padding: 60px 20px 40px;
+  margin-top: 20px;
+}
+
+.hero-content {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.hero-badge {
+  display: inline-block;
+  padding: 8px 20px;
+  font-size: 11px;
+  color: #9C27B0;
+  border: 2px solid #9C27B0;
+  background: rgba(156, 39, 176, 0.1);
+  margin-bottom: 24px;
+  box-shadow: 3px 3px 0 var(--border-color);
+}
+
+.hero-title {
+  font-size: 36px;
+  line-height: 1.4;
+  color: var(--text-primary);
+  margin: 0 0 20px 0;
+  text-shadow: 4px 4px 0 var(--border-color);
+}
+
+.title-line {
+  display: block;
+}
+
+.title-line.highlight {
+  background: linear-gradient(135deg, #9C27B0, #2196F3);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-desc {
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* 功能卡片区域 */
+.features-section {
+  padding: 20px 0 40px;
+}
+
+.section-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.section-title {
+  font-size: 20px;
+  color: var(--text-primary);
+  margin: 0 0 12px 0;
+  text-shadow: 2px 2px 0 var(--border-color);
+}
+
+.section-subtitle {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.feature-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.feature-card {
+  background: var(--bg-card);
+  border: 3px solid var(--border-color);
+  padding: 32px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 6px 6px 0 var(--border-color);
+  position: relative;
+  overflow: hidden;
+}
+
+.feature-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 4px;
+  transition: left 0.3s ease;
+}
+
+.feature-card.feature-asset::before {
+  background: #4CAF50;
+}
+
+.feature-card.feature-nmap::before {
+  background: #FF9800;
+}
+
+.feature-card.feature-subdomain::before {
+  background: #9C27B0;
+}
+
+.feature-card:hover {
+  transform: translate(-4px, -4px);
+  box-shadow: 10px 10px 0 var(--border-color);
+}
+
+.feature-card:hover::before {
+  left: 0;
+}
+
+.feature-icon {
+  font-size: 48px;
+  margin-bottom: 20px;
+  line-height: 1;
+}
+
+.feature-title {
+  font-size: 15px;
+  color: var(--text-primary);
+  margin: 0 0 12px 0;
+}
+
+.feature-desc {
+  font-size: 10px;
+  line-height: 1.8;
+  color: var(--text-secondary);
+  margin: 0 0 20px 0;
+}
+
+.feature-tags {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.feature-tag {
+  font-size: 9px;
+  padding: 4px 10px;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  background: var(--bg-main);
+}
+
 
 
 /* 扫描结果 */
 .scan-result-card {
-  margin-top: 240px;
+  margin-top: 30px;
   margin-bottom: 30px;
 }
 .result-container {
@@ -731,7 +949,28 @@ const getCardHeaders = (row) => {
 }
 
 /* 响应式适配 */
+@media (max-width: 1024px) {
+  .feature-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
+  .hero-section {
+    padding: 40px 10px 30px;
+  }
+  .hero-title {
+    font-size: 24px;
+  }
+  .hero-desc {
+    font-size: 11px;
+  }
+  .feature-cards {
+    grid-template-columns: 1fr;
+  }
+  .section-title {
+    font-size: 16px;
+  }
   .asset-scan-page {
     padding: 10px;
   }
