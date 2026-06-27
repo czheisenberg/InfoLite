@@ -12,7 +12,10 @@
       <div class="scan-form-section">
         <div class="form-container">
           <div class="form-row">
-            <label for="scanInput" class="form-label">扫描目标</label>
+            <div class="label-with-help">
+              <label for="scanInput" class="form-label">扫描目标</label>
+              <span class="help-icon" @click="showSyntaxHelp = true">?</span>
+            </div>
             <input
               id="scanInput"
               v-model="scanInput"
@@ -197,6 +200,56 @@
             </div>
           </div>
         </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 语法提示弹窗 -->
+    <div class="modal-overlay" v-if="showSyntaxHelp" @click="showSyntaxHelp = false">
+      <div class="modal-content syntax-modal" @click.stop>
+        <div class="modal-header">
+          <h3>语法说明</h3>
+          <button class="modal-close" @click="showSyntaxHelp = false">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="syntax-section">
+            <h4>IP地址扫描</h4>
+            <div class="syntax-example">
+              <code>ip="127.0.0.1"</code>
+              <span class="syntax-desc">扫描指定IP的全部端口</span>
+            </div>
+            <div class="syntax-example">
+              <code>ip="127.0.0.1" && port="1-100"</code>
+              <span class="syntax-desc">扫描指定IP的指定端口范围</span>
+            </div>
+            <div class="syntax-example">
+              <code>ip="127.0.0.1" && port="22,80,443,8080"</code>
+              <span class="syntax-desc">扫描指定IP的指定端口列表</span>
+            </div>
+          </div>
+          <div class="syntax-section">
+            <h4>域名扫描</h4>
+            <div class="syntax-example">
+              <code>domain="example.com"</code>
+              <span class="syntax-desc">扫描指定域名的全部端口</span>
+            </div>
+            <div class="syntax-example">
+              <code>domain="example.com" && port="1-1000"</code>
+              <span class="syntax-desc">扫描指定域名的指定端口范围</span>
+            </div>
+            <div class="syntax-example">
+              <code>domain="example.com" && port="80,443,3306"</code>
+              <span class="syntax-desc">扫描指定域名的指定端口列表</span>
+            </div>
+          </div>
+          <div class="syntax-tips">
+            <h4>温馨提示</h4>
+            <ul>
+              <li>端口支持范围格式（如 1-65535）和逗号分隔列表（如 80,443,8080）</li>
+              <li>域名会自动解析为IP地址后进行扫描</li>
+              <li>「查询」按钮优先从数据库缓存获取，「扫描」按钮强制实时扫描</li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
@@ -430,6 +483,8 @@ const scanType = ref('')
 const hasResult = computed(() => tableData.value.length > 0)
 // 详情弹窗
 const detailDialogVisible = ref(false)
+// 语法提示弹窗
+const showSyntaxHelp = ref(false)
 // 当前选中的资产
 const currentAsset = ref({})
 
@@ -987,6 +1042,119 @@ const getCardHeaders = (row) => {
 }
 .pixel-table tr:hover {
   background: var(--border-color);
+}
+
+/* 帮助图标 */
+.label-with-help {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.help-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #3498db;
+  color: #fff;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  font-family: 'Press Start 2P', cursive;
+  border: 2px solid var(--border-color);
+  box-shadow: 2px 2px 0 var(--border-color);
+  transition: all 0.1s;
+  user-select: none;
+}
+
+.help-icon:hover {
+  background: #2980b9;
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--border-color);
+}
+
+.help-icon:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 var(--border-color);
+}
+
+/* 语法提示弹窗 */
+.syntax-modal {
+  max-width: 600px;
+  width: 90%;
+}
+
+.syntax-section {
+  margin-bottom: 20px;
+}
+
+.syntax-section h4 {
+  font-size: 14px;
+  color: var(--accent-primary);
+  margin-bottom: 12px;
+  font-family: 'Press Start 2P', cursive;
+  border-bottom: 2px dashed var(--border-color);
+  padding-bottom: 8px;
+}
+
+.syntax-example {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 12px;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-color);
+  border-radius: 4px;
+}
+
+.syntax-example code {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: var(--accent-primary);
+  background: rgba(255, 107, 53, 0.1);
+  padding: 6px 10px;
+  border-radius: 4px;
+  border-left: 3px solid var(--accent-primary);
+  word-break: break-all;
+}
+
+.syntax-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-family: 'Press Start 2P', cursive;
+  line-height: 1.6;
+}
+
+.syntax-tips {
+  background: rgba(46, 204, 113, 0.1);
+  border: 2px solid #2ecc71;
+  border-radius: 4px;
+  padding: 15px;
+}
+
+.syntax-tips h4 {
+  font-size: 13px;
+  color: #2ecc71;
+  margin-bottom: 10px;
+  font-family: 'Press Start 2P', cursive;
+}
+
+.syntax-tips ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.syntax-tips li {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-family: 'Press Start 2P', cursive;
+  line-height: 2;
+  margin-bottom: 4px;
 }
 
 /* 弹窗样式 */
