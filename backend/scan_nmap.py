@@ -34,9 +34,10 @@ FINGERPRINT_DB = [
 ]
 
 
-def init_scan_config(allowed_ip_prefix, max_concurrent, scan_timeout, common_ports, nmap_path="nmap"):
+def init_scan_config(enable_whitelist, allowed_ip_prefix, max_concurrent, scan_timeout, common_ports, nmap_path="nmap"):
     return {
-        "allowed_ip": allowed_ip_prefix.split(","),
+        "enable_whitelist": enable_whitelist,
+        "allowed_ip": allowed_ip_prefix.split(",") if allowed_ip_prefix else [],
         "max_workers": int(max_concurrent),
         "timeout": int(scan_timeout),
         "ports": [int(p) for p in common_ports.split(",") if p.strip()],
@@ -44,7 +45,19 @@ def init_scan_config(allowed_ip_prefix, max_concurrent, scan_timeout, common_por
     }
 
 
-def check_ip_allowed(ip, allowed_ip_list):
+def check_ip_allowed(ip, scan_config):
+    """
+    检查IP是否在白名单中
+    :param ip: 要检查的IP地址
+    :param scan_config: 扫描配置，包含 enable_whitelist 和 allowed_ip
+    :return: True=允许扫描，False=禁止扫描
+    """
+    # 如果白名单限制被禁用，直接允许
+    if not scan_config.get("enable_whitelist", True):
+        return True
+    
+    # 白名单限制启用，检查IP是否在白名单中
+    allowed_ip_list = scan_config.get("allowed_ip", [])
     for prefix in allowed_ip_list:
         if ip.startswith(prefix.strip()):
             return True

@@ -18,7 +18,7 @@
               v-model="scanInput"
               type="text"
               class="form-input"
-              placeholder='请输入扫描目标，如：ip="127.0.0.1" && port="1-100" 或 ip="127.0.0.1"'
+              placeholder='请输入扫描目标，如：ip="127.0.0.1" 或 domain="example.com"'
               @keyup.enter="doQuery"
             />
             
@@ -329,23 +329,49 @@ const parseScanInput = (input) => {
   const trimmedInput = input.trim()
   
   // 匹配 ip="xxx" && port="xxx" 格式
-  const fullRegex = /^ip="([^"]+)"\s*&&\s*port="([^"]+)"$/i
-  const fullMatch = trimmedInput.match(fullRegex)
+  const fullIpRegex = /^ip="([^"]+)"\s*&&\s*port="([^"]+)"$/i
+  const fullIpMatch = trimmedInput.match(fullIpRegex)
   
   // 匹配只输入 ip="xxx" 格式
   const ipOnlyRegex = /^ip="([^"]+)"$/i
   const ipOnlyMatch = trimmedInput.match(ipOnlyRegex)
   
-  if (fullMatch) {
+  // 匹配 domain="xxx" && port="xxx" 格式（域名+端口）
+  const fullDomainRegex = /^domain="([^"]+)"\s*&&\s*port="([^"]+)"$/i
+  const fullDomainMatch = trimmedInput.match(fullDomainRegex)
+  
+  // 匹配只输入 domain="xxx" 格式（域名）
+  const domainOnlyRegex = /^domain="([^"]+)"$/i
+  const domainOnlyMatch = trimmedInput.match(domainOnlyRegex)
+  
+  if (fullIpMatch) {
     return {
-      ip: fullMatch[1].trim(),
+      target: fullIpMatch[1].trim(),
+      targetType: 'ip',
       portOption: 'custom',
-      portRange: fullMatch[2].trim(),
+      portRange: fullIpMatch[2].trim(),
       scanMode: scanMode.value
     }
   } else if (ipOnlyMatch) {
     return {
-      ip: ipOnlyMatch[1].trim(),
+      target: ipOnlyMatch[1].trim(),
+      targetType: 'ip',
+      portOption: 'all',
+      portRange: '1-65535',
+      scanMode: scanMode.value
+    }
+  } else if (fullDomainMatch) {
+    return {
+      target: fullDomainMatch[1].trim(),
+      targetType: 'domain',
+      portOption: 'custom',
+      portRange: fullDomainMatch[2].trim(),
+      scanMode: scanMode.value
+    }
+  } else if (domainOnlyMatch) {
+    return {
+      target: domainOnlyMatch[1].trim(),
+      targetType: 'domain',
       portOption: 'all',
       portRange: '1-65535',
       scanMode: scanMode.value
@@ -363,7 +389,7 @@ const doQuery = () => {
   
   const scanParams = parseScanInput(scanInput.value)
   if (!scanParams) {
-    $message['info']('请使用正确的输入格式：ip="127.0.0.1" && port="1-100" 或 ip="127.0.0.1"')
+    $message['info']('请使用正确的输入格式：ip="127.0.0.1" 或 domain="example.com"')
     return
   }
   
@@ -381,7 +407,7 @@ const doRefresh = () => {
   
   const scanParams = parseScanInput(scanInput.value)
   if (!scanParams) {
-    $message['info']('请使用正确的输入格式：ip="127.0.0.1" && port="1-100" 或 ip="127.0.0.1"')
+    $message['info']('请使用正确的输入格式：ip="127.0.0.1" 或 domain="example.com"')
     return
   }
   
@@ -409,33 +435,46 @@ const currentAsset = ref({})
 
 
 
-// IP格式校验
-const validateIp = (ip) => {
-  const reg = /^((25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(25[0-5]|2[0-4]\d|[01]?\d\d?)$/
-  return reg.test(ip)
+// 目标格式校验（支持IP或域名）
+const validateTarget = (target, targetType) => {
+  if (targetType === 'ip') {
+    // IP格式校验
+    const reg = /^((25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(25[0-5]|2[0-4]\d|[01]?\d\d?)$/
+    return reg.test(target)
+  } else if (targetType === 'domain') {
+    // 域名格式校验
+    const domainRegex = /^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/
+    return domainRegex.test(target)
+  }
+  return false
 }
 
 // 处理查询/扫描（默认不刷新）
 const handleQuery = async (scanParams, callback) => {
-  const { ip, portOption, portRange, scanMode } = scanParams
+  const { target, targetType, portOption, portRange, scanMode } = scanParams
   
-  // IP校验
-  if (!ip) {
-    $message['info']('请输入目标IP地址')
+  // 目标校验
+  if (!target) {
+    $message['info']('请输入目标')
     if (callback) callback()
     return
   }
-  if (!validateIp(ip)) {
-    $message['info']('请输入正确的IP地址（如127.0.0.1）')
+  if (!validateTarget(target, targetType)) {
+    if (targetType === 'ip') {
+      $message['info']('请输入正确的IP地址（如127.0.0.1）')
+    } else {
+      $message['info']('请输入正确的域名（如example.com）')
+    }
     if (callback) callback()
     return
   }
 
   try {
-    console.log('调用API:', { ip, portOption, portRange, scanMode })
+    console.log('调用API:', { target, targetType, portOption, portRange, scanMode })
     // 调用后端接口，refresh=false（默认不刷新）
     const res = await queryAsset({ 
-      ip: ip,
+      target: target,
+      target_type: targetType,
       port_option: portOption,
       port_range: portRange,
       scan_mode: scanMode
@@ -462,24 +501,29 @@ const handleQuery = async (scanParams, callback) => {
 
 // 处理刷新扫描（强制重新扫描）
 const handleRefresh = async (scanParams, callback) => {
-  const { ip, portOption, portRange, scanMode } = scanParams
+  const { target, targetType, portOption, portRange, scanMode } = scanParams
   
-  if (!ip) {
-    $message['info']('请输入IP地址')
+  if (!target) {
+    $message['info']('请输入目标')
     if (callback) callback()
     return
   }
   
-  if (!validateIp(ip)) {
-    $message['info']('请输入正确的IP地址（如127.0.0.1）')
+  if (!validateTarget(target, targetType)) {
+    if (targetType === 'ip') {
+      $message['info']('请输入正确的IP地址（如127.0.0.1）')
+    } else {
+      $message['info']('请输入正确的域名（如example.com）')
+    }
     if (callback) callback()
     return
   }
-  
+
   try {
     // 调用后端接口，refresh=true（强制刷新）
     const res = await queryAsset({ 
-      ip: ip, 
+      target: target,
+      target_type: targetType,
       refresh: true,
       port_option: portOption,
       port_range: portRange,

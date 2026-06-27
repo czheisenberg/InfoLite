@@ -36,6 +36,7 @@ MYSQL_DB = os.getenv("MYSQL_DB")
 ES_HOST = os.getenv("ES_HOST")
 ES_PORT = os.getenv("ES_PORT")
 # 读取扫描配置
+ENABLE_IP_WHITELIST = os.getenv("ENABLE_IP_WHITELIST", "true").lower() == "true"
 ALLOWED_IP_PREFIX = os.getenv("ALLOWED_IP_PREFIX")
 MAX_CONCURRENT = os.getenv("MAX_CONCURRENT")
 SCAN_TIMEOUT = os.getenv("SCAN_TIMEOUT")
@@ -65,7 +66,7 @@ app = FastAPI(
 
 # 全局初始化数据库连接和扫描配置（启动时执行一次）
 # 扫描配置
-SCAN_CONFIG = init_scan_config(ALLOWED_IP_PREFIX, MAX_CONCURRENT, SCAN_TIMEOUT, COMMON_PORTS, NMAP_PATH)
+SCAN_CONFIG = init_scan_config(ENABLE_IP_WHITELIST, ALLOWED_IP_PREFIX, MAX_CONCURRENT, SCAN_TIMEOUT, COMMON_PORTS, NMAP_PATH)
 # MySQL连接
 MYSQL_CONN, MYSQL_CURSOR = init_mysql_conn(MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_PWD, MYSQL_DB)
 # ES连接
@@ -89,7 +90,8 @@ api.deps.algorithm = ALGORITHM
 print("="*50)
 print("Info Lite 后端服务初始化完成！")
 print(f"API文档地址: http://{API_HOST}:{API_PORT}/docs")
-print(f"扫描白名单: {ALLOWED_IP_PREFIX}")
+print(f"IP白名单限制: {'启用' if ENABLE_IP_WHITELIST else '关闭'}")
+print(f"扫描白名单: {ALLOWED_IP_PREFIX if ENABLE_IP_WHITELIST else '不限制'}")
 print("="*50)
 
 # 依赖注入函数

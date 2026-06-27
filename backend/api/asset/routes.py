@@ -5,6 +5,7 @@ from fastapi import APIRouter, Query, Depends, HTTPException
 from fastapi.responses import JSONResponse, StreamingResponse
 from io import BytesIO
 import time
+import socket
 
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -16,9 +17,24 @@ from api.deps import get_db
 router = APIRouter(prefix="/api/asset", tags=["资产操作"])
 
 
+def resolve_domain_to_ip(domain):
+    """
+    域名解析为IP
+    :param domain: 域名
+    :return: IP地址，如果解析失败返回None
+    """
+    try:
+        ip = socket.gethostbyname(domain)
+        return ip
+    except socket.gaierror:
+        return None
+
+
 @router.get("/query", summary="资产查询/扫描接口")
 async def query_asset(
-    ip: str = Query(..., description="目标IP地址，如127.0.0.1"),
+    target: str = Query(None, description="目标IP或域名，如127.0.0.1或example.com"),
+    ip: str = Query(None, description="目标IP地址（兼容旧版，推荐使用target参数）"),
+    target_type: str = Query("ip", description="目标类型：ip 或 domain"),
     refresh: bool = Query(False, description="是否强制刷新扫描，默认False"),
     port_option: str = Query("common", description="端口选项：common（常用端口）或custom（自定义端口范围）"),
     port_range: str = Query("1-65535", description="自定义端口范围，如1-65535"),
@@ -31,8 +47,30 @@ async def query_asset(
     1. 非刷新+IP有有效数据 → 直接返回数据库数据
     2. 非刷新+无数据/数据过期 → 触发扫描+入库+返回
     3. 刷新 → 强制触发扫描+覆盖数据库+返回
+    支持IP和域名两种输入方式
     """
     try:
+        # 兼容旧版：如果传了ip参数但没传target，自动赋值给target
+        if not target and ip:
+            target = ip
+            target_type = "ip"
+        
+        # 如果没有传入目标，抛出错误
+        if not target:
+            raise HTTPException(status_code=400, detail="请输入目标（target 或 ip 参数）")
+        
+        # 处理目标类型
+        if target_type == "domain":
+            # 域名解析为IP
+            resolved_ip = resolve_domain_to_ip(target)
+            if not resolved_ip:
+                raise HTTPException(status_code=400, detail=f"域名 {target} 解析失败，请检查域名是否正确")
+            ip = resolved_ip
+            display_name = target  # 用于显示的域名
+        else:
+            ip = target
+            display_name = target
+        
         # 校验扫描模式
         if scan_mode not in ["nmap", "socket"]:
             scan_mode = "nmap"
@@ -45,13 +83,13 @@ async def query_asset(
             check_ip_allowed_func = check_ip_allowed_socket
             ip_full_scan_func = ip_full_scan_socket
 
-        # 第一步：IP格式简单校验
+        # IP格式校验（域名已解析，这里只校验IP格式）
         ip_parts = ip.split(".")
         if len(ip_parts) != 4 or not all(part.isdigit() and 0 <= int(part) <= 255 for part in ip_parts):
             raise HTTPException(status_code=400, detail=f"IP地址格式错误：{ip}")
         
         # 第二步：IP白名单校验
-        if not check_ip_allowed_func(ip, db["scan_config"]["allowed_ip"]):
+        if not check_ip_allowed_func(ip, db["scan_config"]):
             raise HTTPException(status_code=403, detail=f"IP {ip} 不在扫描白名单内，禁止扫描！")
         
         # 第三步：非刷新模式，先查询数据库
@@ -62,7 +100,7 @@ async def query_asset(
                     status_code=200,
                     content={
                         "code": 200,
-                        "msg": "查询成功（从数据库获取）",
+                        "msg": f"{'域名' if target_type == 'domain' else 'IP'} {display_name} 查询成功（从数据库获取）",
                         "data": db_result["data"],
                         "scan_type": "db_query",
                         "scan_mode": scan_mode
@@ -79,7 +117,7 @@ async def query_asset(
                 status_code=200,
                 content={
                     "code": 200,
-                    "msg": f"IP {ip} 无开放端口或扫描失败",
+                    "msg": f"{'域名' if target_type == 'domain' else 'IP'} {display_name} 无开放端口或扫描失败",
                     "data": [],
                     "scan_type": "scan",
                     "scan_mode": scan_mode
@@ -95,7 +133,7 @@ async def query_asset(
             status_code=200,
             content={
                 "code": 200,
-                "msg": "扫描成功（新结果已入库）",
+                "msg": f"{'域名' if target_type == 'domain' else 'IP'} {display_name} 扫描成功（新结果已入库）",
                 "data": asset_list,
                 "scan_type": "scan",
                 "scan_mode": scan_mode
@@ -131,7 +169,7 @@ async def nmap_custom_scan(
         if len(ip_parts) != 4 or not all(part.isdigit() and 0 <= int(part) <= 255 for part in ip_parts):
             raise HTTPException(status_code=400, detail=f"IP地址格式错误：{ip}")
 
-        if not check_ip_allowed_nmap(ip, db["scan_config"]["allowed_ip"]):
+        if not check_ip_allowed_nmap(ip, db["scan_config"]):
             raise HTTPException(status_code=403, detail=f"IP {ip} 不在扫描白名单内，禁止扫描！")
 
         if not scan_args.strip():

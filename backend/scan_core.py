@@ -43,9 +43,10 @@ FINGERPRINT_DB = [
     {"name": "NFS", "regex": [r"NFS", r"Network File System"], "favicon": [], "ports": [2049]}
 ]
 
-def init_scan_config(allowed_ip_prefix, max_concurrent, scan_timeout, common_ports):
+def init_scan_config(enable_whitelist, allowed_ip_prefix, max_concurrent, scan_timeout, common_ports):
     """
     初始化扫描配置
+    :param enable_whitelist: 是否启用白名单限制
     :param allowed_ip_prefix: IP白名单前缀（字符串，逗号分隔）
     :param max_concurrent: 最大并发数
     :param scan_timeout: 探测超时时间（秒）
@@ -53,19 +54,26 @@ def init_scan_config(allowed_ip_prefix, max_concurrent, scan_timeout, common_por
     :return: 格式化后的配置字典
     """
     return {
-        "allowed_ip": allowed_ip_prefix.split(","),
+        "enable_whitelist": enable_whitelist,
+        "allowed_ip": allowed_ip_prefix.split(",") if allowed_ip_prefix else [],
         "max_workers": int(max_concurrent),
         "timeout": int(scan_timeout),
         "ports": [int(p) for p in common_ports.split(",") if p.strip()]
     }
 
-def check_ip_allowed(ip, allowed_ip_list):
+def check_ip_allowed(ip, scan_config):
     """
-    IP白名单校验 - 核心安全限制，仅允许扫描白名单内IP
+    IP白名单校验 - 核心安全限制
     :param ip: 待扫描IP
-    :param allowed_ip_list: 白名单IP前缀列表
+    :param scan_config: 扫描配置，包含 enable_whitelist 和 allowed_ip
     :return: True(允许) / False(禁止)
     """
+    # 如果白名单限制被禁用，直接允许
+    if not scan_config.get("enable_whitelist", True):
+        return True
+    
+    # 白名单限制启用，检查IP是否在白名单中
+    allowed_ip_list = scan_config.get("allowed_ip", [])
     for prefix in allowed_ip_list:
         if ip.startswith(prefix.strip()):
             return True
