@@ -2,8 +2,12 @@
 # @Author: Info Lite
 # @Desc: 资产相关API路由
 from fastapi import APIRouter, Query, Depends, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
+from io import BytesIO
+import time
 
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from scan_nmap import check_ip_allowed as check_ip_allowed_nmap, ip_full_scan as ip_full_scan_nmap, custom_nmap_scan
 from scan_core import check_ip_allowed as check_ip_allowed_socket, ip_full_scan as ip_full_scan_socket
 from db_operate import query_asset_from_db, insert_asset_to_mysql, insert_asset_to_es
@@ -167,3 +171,93 @@ async def nmap_custom_scan(
             status_code=500,
             content={"code": 500, "msg": f"服务器内部错误：{str(e)}", "data": []}
         )
+
+
+@router.get("/export-excel", summary="导出资产Excel接口")
+async def export_asset_excel(
+    ip: str = Query(..., description="目标IP地址"),
+    current_user: dict = Depends(lambda: None),
+    db: dict = Depends(get_db)
+):
+    """
+    导出指定IP的扫描结果为Excel文件
+    """
+    try:
+        # 查询数据库中的资产数据
+        db_result = query_asset_from_db(ip, db["mysql_conn"], db["mysql_cursor"], db["es_conn"], db["scan_expire_time"])
+        asset_list = db_result["data"] if db_result["is_valid"] else []
+
+        if not asset_list:
+            raise HTTPException(status_code=404, detail=f"IP {ip} 没有可导出的扫描数据")
+
+        # 创建工作簿
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "资产扫描结果"
+
+        # 设置表头样式
+        header_font = Font(name='微软雅黑', bold=True, size=11, color="FFFFFF")
+        header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+        header_alignment = Alignment(horizontal="center", vertical="center")
+
+        # 边框样式
+        thin_border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin')
+        )
+
+        # 写入表头
+        headers = ["IP地址", "端口", "协议", "状态", "服务", "版本", "产品", "其他信息", "扫描时间"]
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+            cell.border = thin_border
+
+        # 写入数据
+        data_font = Font(name='微软雅黑', size=10)
+        data_alignment = Alignment(horizontal="center", vertical="center")
+
+        for row, asset in enumerate(asset_list, 2):
+            row_data = [
+                asset.get("ip", ""),
+                asset.get("port", ""),
+                asset.get("protocol", ""),
+                asset.get("state", ""),
+                asset.get("service", ""),
+                asset.get("version", ""),
+                asset.get("product", ""),
+                asset.get("extrainfo", ""),
+                asset.get("scan_time", "")
+            ]
+            for col, value in enumerate(row_data, 1):
+                cell = ws.cell(row=row, column=col, value=value)
+                cell.font = data_font
+                cell.alignment = data_alignment
+                cell.border = thin_border
+
+        # 调整列宽
+        column_widths = [15, 8, 10, 8, 15, 20, 15, 20, 20]
+        for col, width in enumerate(column_widths, 1):
+            ws.column_dimensions[chr(64 + col)].width = width
+
+        # 保存到BytesIO
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+
+        # 返回流式响应
+        filename = f"asset_scan_{ip}_{int(time.time())}.xlsx"
+        return StreamingResponse(
+            output,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename*=UTF-8''{filename}"}
+        )
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"导出Excel失败：{str(e)}")

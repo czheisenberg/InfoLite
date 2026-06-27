@@ -5,73 +5,114 @@
       :theme="theme"
       @logout="handleLogout"
       @toggle-theme="toggleTheme"
-      @query="handleQuery"
-      @refresh="handleRefresh"
     />
 
-    <!-- Hero 区域 -->
-    <div class="hero-section" v-if="!hasResult">
-      <div class="hero-content">
-        <div class="hero-badge">🚀 InfoLite 测绘平台</div>
-        <h1 class="hero-title">
-          <span class="title-line">网络空间</span>
-          <span class="title-line highlight">资产探测引擎</span>
-        </h1>
-        <p class="hero-desc">
-          轻量级网络空间测绘平台，支持端口探测、指纹识别、子域名扫描
-        </p>
-      </div>
-    </div>
+    <div class="page-body">
+      <!-- 扫描表单 -->
+      <div class="scan-form-section">
+        <div class="form-container">
+          <div class="form-row">
+            <label for="scanInput" class="form-label">扫描目标</label>
+            <input
+              id="scanInput"
+              v-model="scanInput"
+              type="text"
+              class="form-input"
+              placeholder='请输入扫描目标，如：ip="127.0.0.1" && port="1-100" 或 ip="127.0.0.1"'
+              @keyup.enter="doQuery"
+            />
+            
+            <!-- 扫描模式选择 -->
+            <div class="scan-mode-row">
+              <span class="form-label">扫描引擎</span>
+              <div class="mode-options">
+                <label class="mode-option">
+                  <input type="radio" v-model="scanMode" value="nmap" />
+                  <span>Nmap 引擎（推荐）</span>
+                </label>
+                <label class="mode-option">
+                  <input type="radio" v-model="scanMode" value="socket" />
+                  <span>Socket 引擎</span>
+                </label>
+              </div>
+            </div>
 
-    <!-- 功能卡片区域 -->
-    <div class="features-section" v-if="!hasResult">
-      <div class="section-header">
-        <h2 class="section-title">核心功能</h2>
-        <p class="section-subtitle">三大核心模块，覆盖网络测绘关键能力</p>
-      </div>
-      <div class="feature-cards">
-        <div class="feature-card feature-asset" @click="scrollToSearch">
-          <div class="feature-icon">🔍</div>
-          <h3 class="feature-title">资产扫描</h3>
-          <p class="feature-desc">端口探测 + 指纹识别，快速发现目标资产</p>
-          <div class="feature-tags">
-            <span class="feature-tag">Nmap引擎</span>
-            <span class="feature-tag">Socket引擎</span>
-          </div>
-        </div>
-        <div class="feature-card feature-nmap" @click="goToNmapScan">
-          <div class="feature-icon">⚡</div>
-          <h3 class="feature-title">Nmap 扫描</h3>
-          <p class="feature-desc">自定义参数，灵活调用成熟扫描工具</p>
-          <div class="feature-tags">
-            <span class="feature-tag">自定义参数</span>
-            <span class="feature-tag">版本探测</span>
-          </div>
-        </div>
-        <div class="feature-card feature-subdomain" @click="goToSubdomainScan">
-          <div class="feature-icon">🌐</div>
-          <h3 class="feature-title">子域名扫描</h3>
-          <p class="feature-desc">多源聚合 + 字典爆破，全面发现子域名</p>
-          <div class="feature-tags">
-            <span class="feature-tag">crt.sh</span>
-            <span class="feature-tag">chaziyu</span>
+            <div class="form-buttons">
+              <button 
+                class="btn-primary" 
+                @click="doQuery"
+                :disabled="loading || !scanInput.trim()"
+              >
+                <span v-if="loading">扫描中...</span>
+                <span v-else>查询</span>
+              </button>
+              <button 
+                class="btn-secondary" 
+                @click="doRefresh" 
+                :disabled="loading || !scanInput.trim()"
+              >
+                <span v-if="loading">刷新中...</span>
+                <span v-else>扫描</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- 扫描结果 -->
-    <div class="scan-result-card" v-if="hasResult">
-      <div class="result-container">
-        <div class="result-header">
-          <h3>
-            扫描结果
-            <span class="tag" :class="{ 'tag-info': scanType === 'db_query', 'tag-primary': scanType !== 'db_query' }">
-                {{ scanType === 'db_query' ? '从数据库查询' : '实时扫描结果' }}
-              </span>
-          </h3>
-          <p>共检测到 {{ tableData.length }} 个开放端口/资产</p>
+      <!-- 功能卡片区域 -->
+      <div class="features-section" v-if="!hasResult">
+        <div class="section-header">
+          <h2 class="section-title">核心功能</h2>
+          <p class="section-subtitle">三大核心模块，覆盖网络测绘关键能力</p>
         </div>
+        <div class="feature-cards">
+          <div class="feature-card feature-asset" @click="scrollToSearch">
+            <div class="feature-icon">🔍</div>
+            <h3 class="feature-title">资产扫描</h3>
+            <p class="feature-desc">端口探测 + 指纹识别，快速发现目标资产</p>
+            <div class="feature-tags">
+              <span class="feature-tag">Nmap引擎</span>
+              <span class="feature-tag">Socket引擎</span>
+            </div>
+          </div>
+          <div class="feature-card feature-nmap" @click="goToNmapScan">
+            <div class="feature-icon">⚡</div>
+            <h3 class="feature-title">Nmap 扫描</h3>
+            <p class="feature-desc">自定义参数，灵活调用成熟扫描工具</p>
+            <div class="feature-tags">
+              <span class="feature-tag">自定义参数</span>
+              <span class="feature-tag">版本探测</span>
+            </div>
+          </div>
+          <div class="feature-card feature-subdomain" @click="goToSubdomainScan">
+            <div class="feature-icon">🌐</div>
+            <h3 class="feature-title">子域名扫描</h3>
+            <p class="feature-desc">多源聚合 + 字典爆破，全面发现子域名</p>
+            <div class="feature-tags">
+              <span class="feature-tag">crt.sh</span>
+              <span class="feature-tag">chaziyu</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 扫描结果 -->
+      <div class="scan-result-card" v-if="hasResult">
+        <div class="result-container">
+          <div class="result-header">
+            <div class="result-header-left">
+              <h3>
+                扫描结果
+                <span class="tag" :class="{ 'tag-info': scanType === 'db_query', 'tag-primary': scanType !== 'db_query' }">
+                    {{ scanType === 'db_query' ? '从数据库查询' : '实时扫描结果' }}
+                  </span>
+              </h3>
+              <p>共检测到 {{ tableData.length }} 个开放端口/资产</p>
+            </div>
+            <button class="btn-export" @click="handleExport">
+              📊 导出 Excel
+            </button>
+          </div>
 
         <!-- 结果卡片 -->
         <div class="cards-container">
@@ -147,6 +188,7 @@
             </div>
           </div>
         </div>
+        </div>
       </div>
     </div>
 
@@ -213,7 +255,6 @@
         </div>
       </div>
     </div>
-    
     <!-- 页面底部 -->
     <PageFooter />
   </div>
@@ -226,6 +267,7 @@ import PageHeader from '../components/PageHeader.vue'
 import PageFooter from '../components/PageFooter.vue'
 // 引入封装的API接口
 import { queryAsset, getAssetDetail, getAssetList } from '../api/asset'
+import * as XLSX from 'xlsx'
 // 引入Pixelium Design的Message组件
 import { Message } from '@pixelium/web-vue/es'
 const $message = Message
@@ -260,6 +302,80 @@ const goToSubdomainScan = () => {
 
 const scrollToSearch = () => {
   window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+// 扫描输入
+const scanInput = ref('')
+// 扫描模式（nmap 或 socket）
+const scanMode = ref('nmap')
+// 加载状态
+const loading = ref(false)
+
+// 解析输入格式
+const parseScanInput = (input) => {
+  const trimmedInput = input.trim()
+  
+  // 匹配 ip="xxx" && port="xxx" 格式
+  const fullRegex = /^ip="([^"]+)"\s*&&\s*port="([^"]+)"$/i
+  const fullMatch = trimmedInput.match(fullRegex)
+  
+  // 匹配只输入 ip="xxx" 格式
+  const ipOnlyRegex = /^ip="([^"]+)"$/i
+  const ipOnlyMatch = trimmedInput.match(ipOnlyRegex)
+  
+  if (fullMatch) {
+    return {
+      ip: fullMatch[1].trim(),
+      portOption: 'custom',
+      portRange: fullMatch[2].trim(),
+      scanMode: scanMode.value
+    }
+  } else if (ipOnlyMatch) {
+    return {
+      ip: ipOnlyMatch[1].trim(),
+      portOption: 'all',
+      portRange: '1-65535',
+      scanMode: scanMode.value
+    }
+  } else {
+    return null
+  }
+}
+
+// 执行查询
+const doQuery = () => {
+  if (!scanInput.value.trim()) {
+    return
+  }
+  
+  const scanParams = parseScanInput(scanInput.value)
+  if (!scanParams) {
+    $message['info']('请使用正确的输入格式：ip="127.0.0.1" && port="1-100" 或 ip="127.0.0.1"')
+    return
+  }
+  
+  loading.value = true
+  handleQuery(scanParams, () => {
+    loading.value = false
+  })
+}
+
+// 执行刷新扫描
+const doRefresh = () => {
+  if (!scanInput.value.trim()) {
+    return
+  }
+  
+  const scanParams = parseScanInput(scanInput.value)
+  if (!scanParams) {
+    $message['info']('请使用正确的输入格式：ip="127.0.0.1" && port="1-100" 或 ip="127.0.0.1"')
+    return
+  }
+  
+  loading.value = true
+  handleRefresh(scanParams, () => {
+    loading.value = false
+  })
 }
 
 // 扫描表单数据
@@ -314,6 +430,7 @@ const handleQuery = async (scanParams, callback) => {
     console.log('API返回:', res)
     if (res.code === 200) {
       tableData.value = res.data
+      scanType.value = res.scan_type
       // 提示成功
       $message['success']('扫描/查询成功')
     } else {
@@ -357,6 +474,7 @@ const handleRefresh = async (scanParams, callback) => {
     })
     if (res.code === 200) {
       tableData.value = res.data
+      scanType.value = res.scan_type
       // 提示成功
       $message['success']('刷新扫描成功')
     } else {
@@ -376,6 +494,31 @@ const handleRefresh = async (scanParams, callback) => {
 const showDetail = (row) => {
   currentAsset.value = row
   detailDialogVisible.value = true
+}
+
+// 导出Excel
+const handleExport = () => {
+  if (tableData.value.length === 0) {
+    $message['info']('没有可导出的数据')
+    return
+  }
+  const exportData = tableData.value.map(row => ({
+    '目标IP': row.ip,
+    '端口': row.port,
+    '协议': row.protocol,
+    '端口状态': row.status,
+    '服务Banner': row.banner || '',
+    '服务名称': row.service_name || '',
+    '产品版本': row.product ? `${row.product} ${row.version || ''}` : '',
+    '组件指纹': row.fingerprint && row.fingerprint.length > 0 ? row.fingerprint.join('、') : '未识别',
+    '扫描时间': row.scan_time_str || ''
+  }))
+  const ws = XLSX.utils.json_to_sheet(exportData)
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, '资产扫描结果')
+  const ip = tableData.value[0]?.ip || 'asset'
+  XLSX.writeFile(wb, `资产扫描_${ip}_${Date.now()}.xlsx`)
+  $message['success']('导出成功')
 }
 
 // 计算属性：是否有headers信息
@@ -470,55 +613,97 @@ const getCardHeaders = (row) => {
   background-color: var(--bg-main);
   min-height: 100vh;
   font-family: 'Press Start 2P', monospace;
+  padding-top: 80px;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Hero 区域 */
-.hero-section {
-  text-align: center;
-  padding: 60px 20px 40px;
-  margin-top: 20px;
+.page-body {
+  flex: 1;
 }
 
-.hero-content {
-  max-width: 800px;
-  margin: 0 auto;
+/* 扫描表单区域 */
+.scan-form-section {
+  max-width: 900px;
+  margin: 0 auto 30px;
 }
 
-.hero-badge {
-  display: inline-block;
-  padding: 8px 20px;
-  font-size: 11px;
-  color: #9C27B0;
-  border: 2px solid #9C27B0;
-  background: rgba(156, 39, 176, 0.1);
-  margin-bottom: 24px;
-  box-shadow: 3px 3px 0 var(--border-color);
+.scan-form-section .form-container {
+  background: var(--bg-card);
+  border: 3px solid var(--border-color);
+  padding: 24px;
+  box-shadow: 6px 6px 0 var(--border-color);
 }
 
-.hero-title {
-  font-size: 36px;
-  line-height: 1.4;
+.scan-form-section .form-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 15px;
+}
+
+.scan-form-section .form-label {
+  font-size: 12px;
   color: var(--text-primary);
-  margin: 0 0 20px 0;
-  text-shadow: 4px 4px 0 var(--border-color);
+  font-family: 'Press Start 2P', monospace;
 }
 
-.title-line {
-  display: block;
+.scan-form-section .form-input {
+  width: 100%;
+  height: 44px;
+  padding: 0 12px;
+  border: 2px solid var(--border-color);
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  font-size: 12px;
+  box-sizing: border-box;
+  font-family: 'Press Start 2P', monospace;
+  box-shadow: inset 2px 2px 0 var(--border-color);
 }
 
-.title-line.highlight {
-  background: linear-gradient(135deg, #9C27B0, #2196F3);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.scan-form-section .form-input:focus {
+  outline: none;
+  border-color: #4CAF50;
 }
 
-.hero-desc {
-  font-size: 13px;
-  line-height: 1.8;
-  color: var(--text-secondary);
-  margin: 0;
+.scan-form-section .scan-mode-row {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  width: 100%;
+}
+
+.scan-form-section .mode-options {
+  display: flex;
+  gap: 20px;
+}
+
+.scan-form-section .mode-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--text-primary);
+  font-family: 'Press Start 2P', monospace;
+}
+
+.scan-form-section .mode-option input[type="radio"] {
+  cursor: pointer;
+  accent-color: #4CAF50;
+}
+
+.scan-form-section .form-buttons {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  margin-top: 5px;
+}
+
+.scan-form-section .form-buttons button {
+  flex: 1;
+  padding: 12px 20px;
+  font-size: 12px;
 }
 
 /* 功能卡片区域 */
@@ -662,6 +847,35 @@ const getCardHeaders = (row) => {
   font-size: 12px;
   color: var(--text-secondary);
   margin: 0;
+}
+
+.result-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.result-header-left p {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.btn-export {
+  background: linear-gradient(135deg, #4CAF50, #2E7D32);
+  color: white;
+  border: 3px solid var(--border-color);
+  padding: 12px 20px;
+  font-size: 11px;
+  cursor: pointer;
+  font-family: 'Press Start 2P', monospace;
+  box-shadow: 4px 4px 0 var(--border-color);
+  transition: all 0.2s ease;
+}
+
+.btn-export:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 var(--border-color);
 }
 
 /* 标签样式 */
@@ -956,14 +1170,18 @@ const getCardHeaders = (row) => {
 }
 
 @media (max-width: 768px) {
-  .hero-section {
-    padding: 40px 10px 30px;
+  .asset-scan-page {
+    padding-top: 70px;
   }
-  .hero-title {
-    font-size: 24px;
+  .scan-form-section .form-container {
+    padding: 16px;
   }
-  .hero-desc {
-    font-size: 11px;
+  .scan-form-section .scan-mode-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .scan-form-section .form-buttons {
+    flex-direction: column;
   }
   .feature-cards {
     grid-template-columns: 1fr;

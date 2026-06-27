@@ -60,3 +60,11 @@ export const nmapCustomScan = (params) => {
     params
   })
 }
+
+/**
+ * 导出资产Excel
+ * @param {string} ip - 目标IP地址
+ */
+export const exportAssetExcel = (ip) => {
+  window.open(`/api/asset/export-excel?ip=${ip}`, '_blank')
+}

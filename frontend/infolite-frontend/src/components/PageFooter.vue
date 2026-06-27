@@ -1,8 +1,13 @@
 <template>
   <div class="page-footer">
     <div class="footer-content">
-      <p>© {{ currentYear }} InfoLite 网络资产扫描平台</p>
-      <p>版本 1.0.0 | 安全扫描工具</p>
+      <div class="footer-desc">
+        轻量级网络空间测绘平台，支持端口探测、指纹识别、子域名扫描
+      </div>
+      <div class="footer-copyright">
+        <p>© {{ currentYear }} InfoLite 网络资产扫描平台</p>
+        <p>版本 1.0.0 | 安全扫描工具</p>
+      </div>
     </div>
   </div>
 </template>
@@ -10,7 +15,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 
-// 当前年份
 const currentYear = ref(new Date().getFullYear())
 
 onMounted(() => {
@@ -19,7 +23,8 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* 页面底部 */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
 .page-footer {
   background: var(--bg-secondary);
   border-top: 3px solid var(--border-color);
@@ -34,22 +39,32 @@ onMounted(() => {
   text-align: center;
 }
 
-.footer-content p {
-  margin: 10px 0;
-  font-size: 12px;
+.footer-desc {
+  font-size: 10px;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  line-height: 1.8;
+}
+
+.footer-copyright p {
+  margin: 6px 0;
+  font-size: 10px;
   color: var(--text-secondary);
 }
 
-/* 响应式适配 */
 @media (max-width: 768px) {
   .page-footer {
     padding: 15px;
     margin-top: 30px;
   }
   
-  .footer-content p {
-    font-size: 10px;
-    margin: 8px 0;
+  .footer-desc {
+    font-size: 9px;
+  }
+  
+  .footer-copyright p {
+    font-size: 9px;
+    margin: 5px 0;
   }
 }
 </style>

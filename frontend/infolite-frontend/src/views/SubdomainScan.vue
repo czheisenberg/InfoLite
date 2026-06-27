@@ -85,10 +85,13 @@
               <span v-if="fromCache" class="cache-badge">缓存</span>
               <span v-else class="live-badge">实时</span>
             </h3>
-            <div class="result-stats">
-              <span class="stat-item">总数: {{ scanResult.total }}</span>
-              <span class="stat-item alive">存活: {{ scanResult.alive_count }}</span>
-              <span class="stat-item">耗时: {{ scanResult.cost_time }}s</span>
+            <div class="result-header-right">
+              <div class="result-stats">
+                <span class="stat-item">总数: {{ scanResult.total }}</span>
+                <span class="stat-item alive">存活: {{ scanResult.alive_count }}</span>
+                <span class="stat-item">耗时: {{ scanResult.cost_time }}s</span>
+              </div>
+              <button class="btn-export" @click="handleExport">导出Excel</button>
             </div>
           </div>
 
@@ -155,6 +158,7 @@
 import { ref, computed, inject } from 'vue'
 import PageFooter from '../components/PageFooter.vue'
 import { scanSubdomain } from '../api/subdomain'
+import * as XLSX from 'xlsx'
 import { Message } from '@pixelium/web-vue/es'
 const $message = Message
 
@@ -275,6 +279,24 @@ const goToAssetScan = () => {
 
 const goToNmapScan = () => {
   window.location.href = '/nmap-scan'
+}
+
+const handleExport = () => {
+  if (!scanResult.value || !scanResult.value.results || scanResult.value.results.length === 0) {
+    $message['info']('没有可导出的数据')
+    return
+  }
+  const exportData = scanResult.value.results.map(item => ({
+    '子域名': item.domain,
+    'IP地址': item.ips && item.ips.length > 0 ? item.ips.join(', ') : '',
+    '来源': item.source || '',
+    '状态': item.status || ''
+  }))
+  const ws = XLSX.utils.json_to_sheet(exportData)
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, '子域名扫描结果')
+  XLSX.writeFile(wb, `子域名_${targetDomain.value}_${Date.now()}.xlsx`)
+  $message['success']('导出成功')
 }
 </script>
 
@@ -639,6 +661,29 @@ const goToNmapScan = () => {
   font-size: 14px;
   color: var(--text-primary);
   margin: 0;
+}
+
+.result-header-right {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.btn-export {
+  background: #4CAF50;
+  color: white;
+  border: 2px solid var(--border-color);
+  padding: 6px 12px;
+  font-size: 9px;
+  cursor: pointer;
+  font-family: 'Press Start 2P', monospace;
+  box-shadow: 3px 3px 0 var(--border-color);
+  transition: all 0.2s ease;
+}
+
+.btn-export:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--border-color);
 }
 
 .result-stats {

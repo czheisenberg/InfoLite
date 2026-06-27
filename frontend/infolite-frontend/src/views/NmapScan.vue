@@ -112,7 +112,10 @@
         <div v-if="scanResult.length > 0" class="result-card">
           <div class="result-header">
             <h3>扫描结果</h3>
-            <span class="result-count">共 {{ scanResult.length }} 个开放端口</span>
+            <div class="result-header-right">
+              <span class="result-count">共 {{ scanResult.length }} 个开放端口</span>
+              <button class="btn-export" @click="handleExport">导出Excel</button>
+            </div>
           </div>
           <div class="cards-container">
             <div v-for="row in scanResult" :key="`${row.ip}-${row.port}`" class="asset-card">
@@ -167,6 +170,7 @@
 import { ref, computed, inject, onMounted } from 'vue'
 import PageFooter from '../components/PageFooter.vue'
 import { nmapCustomScan } from '../api/asset'
+import * as XLSX from 'xlsx'
 import { Message } from '@pixelium/web-vue/es'
 const $message = Message
 
@@ -298,6 +302,30 @@ const handleLogout = () => {
 
 const goToAssetScan = () => {
   window.location.href = '/'
+}
+
+const handleExport = () => {
+  if (scanResult.value.length === 0) {
+    $message['info']('没有可导出的数据')
+    return
+  }
+  const exportData = scanResult.value.map(row => ({
+    '目标IP': row.ip,
+    '端口': row.port,
+    '协议': row.protocol,
+    '端口状态': row.status,
+    '服务Banner': row.banner || '',
+    '服务名称': row.service_name || '',
+    '产品版本': row.product ? `${row.product} ${row.version || ''}` : '',
+    '组件指纹': row.fingerprint && row.fingerprint.length > 0 ? row.fingerprint.join('、') : '未识别',
+    '扫描时间': row.scan_time_str || ''
+  }))
+  const ws = XLSX.utils.json_to_sheet(exportData)
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Nmap扫描结果')
+  const ip = scanResult.value[0]?.ip || 'nmap'
+  XLSX.writeFile(wb, `Nmap扫描_${ip}_${Date.now()}.xlsx`)
+  $message['success']('导出成功')
 }
 
 onMounted(() => {
@@ -656,6 +684,29 @@ onMounted(() => {
   padding: 4px 8px;
   background: var(--bg-main);
   border: 1px solid var(--border-color);
+}
+
+.result-header-right {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.btn-export {
+  background: #4CAF50;
+  color: white;
+  border: 2px solid var(--border-color);
+  padding: 6px 12px;
+  font-size: 9px;
+  cursor: pointer;
+  font-family: 'Press Start 2P', monospace;
+  box-shadow: 3px 3px 0 var(--border-color);
+  transition: all 0.2s ease;
+}
+
+.btn-export:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--border-color);
 }
 
 .empty-state {
