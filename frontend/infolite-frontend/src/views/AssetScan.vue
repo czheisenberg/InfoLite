@@ -63,7 +63,7 @@
       <div class="features-section" v-if="!hasResult">
         <div class="section-header">
           <h2 class="section-title">核心功能</h2>
-          <p class="section-subtitle">三大核心模块，覆盖网络测绘关键能力</p>
+          <p class="section-subtitle">四大核心模块，覆盖网络测绘关键能力</p>
         </div>
         <div class="feature-cards">
           <div class="feature-card feature-asset" @click="scrollToSearch">
@@ -91,6 +91,15 @@
             <div class="feature-tags">
               <span class="feature-tag">crt.sh</span>
               <span class="feature-tag">chaziyu</span>
+            </div>
+          </div>
+          <div class="feature-card feature-dirsearch" @click="goToDirsearchScan">
+            <div class="feature-icon">🔎</div>
+            <h3 class="feature-title">Dirsearch 扫描</h3>
+            <p class="feature-desc">Web 目录发现，快速定位敏感路径</p>
+            <div class="feature-tags">
+              <span class="feature-tag">路径爆破</span>
+              <span class="feature-tag">多扩展名</span>
             </div>
           </div>
         </div>
@@ -298,6 +307,10 @@ const goToNmapScan = () => {
 
 const goToSubdomainScan = () => {
   window.location.href = '/subdomain-scan'
+}
+
+const goToDirsearchScan = () => {
+  window.location.href = '/dirsearch-scan'
 }
 
 const scrollToSearch = () => {
@@ -731,9 +744,9 @@ const getCardHeaders = (row) => {
 
 .feature-cards {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
-  max-width: 1100px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  max-width: 1400px;
   margin: 0 auto;
 }
 
@@ -769,6 +782,10 @@ const getCardHeaders = (row) => {
 
 .feature-card.feature-subdomain::before {
   background: #9C27B0;
+}
+
+.feature-card.feature-dirsearch::before {
+  background: #00BCD4;
 }
 
 .feature-card:hover {

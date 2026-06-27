@@ -16,6 +16,13 @@
           子域名
         </button>
         <button 
+          class="btn-secondary nav-tab-btn nav-tab-dirsearch" 
+          @click="goToDirsearchScan"
+          title="Dirsearch扫描"
+        >
+          Dirsearch
+        </button>
+        <button 
           class="btn-secondary nav-tab-btn" 
           @click="goToNmapScan"
           title="Nmap扫描"
@@ -75,6 +82,11 @@ const goToNmapScan = () => {
 // 跳转到子域名扫描页面
 const goToSubdomainScan = () => {
   window.location.href = '/subdomain-scan'
+}
+
+// 跳转到 Dirsearch 扫描页面
+const goToDirsearchScan = () => {
+  window.location.href = '/dirsearch-scan'
 }
 
 // 返回首页
@@ -212,6 +224,10 @@ const goHome = () => {
 
 .nav-tab-subdomain {
   background: #9C27B0 !important;
+}
+
+.nav-tab-dirsearch {
+  background: #00BCD4 !important;
 }
 
 /* 响应式适配 */

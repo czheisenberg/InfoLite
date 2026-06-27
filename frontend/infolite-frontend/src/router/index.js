@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import AssetScan from '../views/AssetScan.vue'
 import NmapScan from '../views/NmapScan.vue'
 import SubdomainScan from '../views/SubdomainScan.vue'
+import DirsearchScan from '../views/DirsearchScan.vue'
 import Login from '../views/Login.vue'
 
 const routes = [
@@ -29,6 +30,15 @@ const routes = [
     component: SubdomainScan,
     meta: { 
       title: 'InfoLite - 子域名扫描',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/dirsearch-scan',
+    name: 'DirsearchScan',
+    component: DirsearchScan,
+    meta: { 
+      title: 'InfoLite - Dirsearch 扫描',
       requiresAuth: true
     }
   },
