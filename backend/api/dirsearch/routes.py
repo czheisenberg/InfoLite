@@ -12,14 +12,12 @@ from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel
 
-# 添加 dirsearch 到 path
-DIRSEARCH_PATH = os.path.join(os.path.dirname(__file__), '..', 'dirsearch')
-if DIRSEARCH_PATH not in sys.path:
-    sys.path.insert(0, DIRSEARCH_PATH)
-
 from dirsearch import DirsearchFuzzer, FuzzerConfig, Wordlist
+import dirsearch
 
 router = APIRouter(prefix="/api/dirsearch", tags=["dirsearch"])
+
+DIRSEARCH_DB_PATH = os.path.join(os.path.dirname(dirsearch.__file__), 'db')
 
 
 class DirsearchResult(BaseModel):
@@ -121,21 +119,21 @@ async def dirsearch_scan(
     # 选择词表
     wordlist_file = None
     if wordlist_type == "default":
-        wordlist_file = os.path.join(DIRSEARCH_PATH, 'db', 'dicc.txt')
+        wordlist_file = os.path.join(DIRSEARCH_DB_PATH, 'dicc.txt')
     elif wordlist_type == "common":
-        wordlist_file = os.path.join(DIRSEARCH_PATH, 'db', 'categories', 'common.txt')
+        wordlist_file = os.path.join(DIRSEARCH_DB_PATH, 'categories', 'common.txt')
     elif wordlist_type == "api":
-        wordlist_file = os.path.join(DIRSEARCH_PATH, 'db', 'templates', 'api.txt')
+        wordlist_file = os.path.join(DIRSEARCH_DB_PATH, 'templates', 'api.txt')
     elif wordlist_type == "admin":
-        wordlist_file = os.path.join(DIRSEARCH_PATH, 'db', 'templates', 'admin.txt')
+        wordlist_file = os.path.join(DIRSEARCH_DB_PATH, 'templates', 'admin.txt')
     elif wordlist_type == "auth":
-        wordlist_file = os.path.join(DIRSEARCH_PATH, 'db', 'templates', 'auth.txt')
+        wordlist_file = os.path.join(DIRSEARCH_DB_PATH, 'templates', 'auth.txt')
     elif wordlist_type == "backups":
-        wordlist_file = os.path.join(DIRSEARCH_PATH, 'db', 'templates', 'backups.txt')
+        wordlist_file = os.path.join(DIRSEARCH_DB_PATH, 'templates', 'backups.txt')
     elif wordlist_type == "db":
-        wordlist_file = os.path.join(DIRSEARCH_PATH, 'db', 'templates', 'db.txt')
+        wordlist_file = os.path.join(DIRSEARCH_DB_PATH, 'templates', 'db.txt')
     elif wordlist_type == "logs":
-        wordlist_file = os.path.join(DIRSEARCH_PATH, 'db', 'templates', 'logs.txt')
+        wordlist_file = os.path.join(DIRSEARCH_DB_PATH, 'templates', 'logs.txt')
 
     # 加载词表
     wordlist = None
@@ -217,50 +215,50 @@ async def get_wordlists():
         {
             'name': 'default',
             'description': '内置词表 (dicc.txt)',
-            'path': os.path.join(DIRSEARCH_PATH, 'db', 'dicc.txt'),
-            'exists': os.path.exists(os.path.join(DIRSEARCH_PATH, 'db', 'dicc.txt'))
+            'path': os.path.join(DIRSEARCH_DB_PATH, 'dicc.txt'),
+            'exists': os.path.exists(os.path.join(DIRSEARCH_DB_PATH, 'dicc.txt'))
         },
         {
             'name': 'common',
             'description': '通用词表 (common.txt)',
-            'path': os.path.join(DIRSEARCH_PATH, 'db', 'categories', 'common.txt'),
-            'exists': os.path.exists(os.path.join(DIRSEARCH_PATH, 'db', 'categories', 'common.txt'))
+            'path': os.path.join(DIRSEARCH_DB_PATH, 'categories', 'common.txt'),
+            'exists': os.path.exists(os.path.join(DIRSEARCH_DB_PATH, 'categories', 'common.txt'))
         },
         {
             'name': 'api',
             'description': 'API 词表 (api.txt)',
-            'path': os.path.join(DIRSEARCH_PATH, 'db', 'templates', 'api.txt'),
-            'exists': os.path.exists(os.path.join(DIRSEARCH_PATH, 'db', 'templates', 'api.txt'))
+            'path': os.path.join(DIRSEARCH_DB_PATH, 'templates', 'api.txt'),
+            'exists': os.path.exists(os.path.join(DIRSEARCH_DB_PATH, 'templates', 'api.txt'))
         },
         {
             'name': 'admin',
             'description': '管理员词表 (admin.txt)',
-            'path': os.path.join(DIRSEARCH_PATH, 'db', 'templates', 'admin.txt'),
-            'exists': os.path.exists(os.path.join(DIRSEARCH_PATH, 'db', 'templates', 'admin.txt'))
+            'path': os.path.join(DIRSEARCH_DB_PATH, 'templates', 'admin.txt'),
+            'exists': os.path.exists(os.path.join(DIRSEARCH_DB_PATH, 'templates', 'admin.txt'))
         },
         {
             'name': 'auth',
             'description': '认证词表 (auth.txt)',
-            'path': os.path.join(DIRSEARCH_PATH, 'db', 'templates', 'auth.txt'),
-            'exists': os.path.exists(os.path.join(DIRSEARCH_PATH, 'db', 'templates', 'auth.txt'))
+            'path': os.path.join(DIRSEARCH_DB_PATH, 'templates', 'auth.txt'),
+            'exists': os.path.exists(os.path.join(DIRSEARCH_DB_PATH, 'templates', 'auth.txt'))
         },
         {
             'name': 'backups',
             'description': '备份词表 (backups.txt)',
-            'path': os.path.join(DIRSEARCH_PATH, 'db', 'templates', 'backups.txt'),
-            'exists': os.path.exists(os.path.join(DIRSEARCH_PATH, 'db', 'templates', 'backups.txt'))
+            'path': os.path.join(DIRSEARCH_DB_PATH, 'templates', 'backups.txt'),
+            'exists': os.path.exists(os.path.join(DIRSEARCH_DB_PATH, 'templates', 'backups.txt'))
         },
         {
             'name': 'db',
             'description': '数据库词表 (db.txt)',
-            'path': os.path.join(DIRSEARCH_PATH, 'db', 'templates', 'db.txt'),
-            'exists': os.path.exists(os.path.join(DIRSEARCH_PATH, 'db', 'templates', 'db.txt'))
+            'path': os.path.join(DIRSEARCH_DB_PATH, 'templates', 'db.txt'),
+            'exists': os.path.exists(os.path.join(DIRSEARCH_DB_PATH, 'templates', 'db.txt'))
         },
         {
             'name': 'logs',
             'description': '日志词表 (logs.txt)',
-            'path': os.path.join(DIRSEARCH_PATH, 'db', 'templates', 'logs.txt'),
-            'exists': os.path.exists(os.path.join(DIRSEARCH_PATH, 'db', 'templates', 'logs.txt'))
+            'path': os.path.join(DIRSEARCH_DB_PATH, 'templates', 'logs.txt'),
+            'exists': os.path.exists(os.path.join(DIRSEARCH_DB_PATH, 'templates', 'logs.txt'))
         },
     ]
 

@@ -3,6 +3,8 @@ requests==2.31.0
 aiohttp==3.13.3
 asyncio==3.4.3
 python-nmap==0.7.1
+# Web 目录扫描
+dirsearch @ git+https://github.com/maurosoria/dirsearch.git@06c1be640c4479600064b22131a67f5f21fe2bca
 # 数据库操作
 pymysql==1.1.0
 redis==5.0.1

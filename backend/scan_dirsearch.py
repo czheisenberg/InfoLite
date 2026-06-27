@@ -9,12 +9,10 @@ import time
 import threading
 from typing import List, Dict, Any, Optional, Callable
 
-# 添加 dirsearch 到 path
-DIRSEARCH_PATH = os.path.join(os.path.dirname(__file__), 'dirsearch')
-if DIRSEARCH_PATH not in sys.path:
-    sys.path.insert(0, DIRSEARCH_PATH)
-
 from dirsearch import DirsearchFuzzer, FuzzerConfig, Wordlist
+import dirsearch
+
+DIRSEARCH_DB_PATH = os.path.join(os.path.dirname(dirsearch.__file__), 'db')
 
 
 class DirsearchScanner:
@@ -92,7 +90,7 @@ class DirsearchScanner:
         elif wordlist_file and os.path.exists(wordlist_file):
             wl = Wordlist.from_file(wordlist_file)
         else:
-            default_file = os.path.join(DIRSEARCH_PATH, 'db', 'dicc.txt')
+            default_file = os.path.join(DIRSEARCH_DB_PATH, 'dicc.txt')
             if os.path.exists(default_file):
                 wl = Wordlist.from_file(default_file)
             else:
