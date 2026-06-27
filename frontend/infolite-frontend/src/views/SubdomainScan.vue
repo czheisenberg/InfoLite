@@ -466,7 +466,7 @@ const handleExport = () => {
 }
 
 .source-desc {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text-secondary);
 }
 
@@ -516,7 +516,7 @@ const handleExport = () => {
   display: inline-block;
   margin-left: 10px;
   padding: 3px 8px;
-  font-size: 9px;
+  font-size: 11px;
   background: #2196F3;
   color: white;
   border: 2px solid var(--border-color);
@@ -526,7 +526,7 @@ const handleExport = () => {
   display: inline-block;
   margin-left: 10px;
   padding: 3px 8px;
-  font-size: 9px;
+  font-size: 11px;
   background: #4CAF50;
   color: white;
   border: 2px solid var(--border-color);
@@ -566,7 +566,7 @@ const handleExport = () => {
 }
 
 .option-desc {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text-secondary);
 }
 
@@ -585,7 +585,7 @@ const handleExport = () => {
   border: 2px solid var(--border-color);
   cursor: pointer;
   background: var(--bg-main);
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text-primary);
   transition: all 0.2s;
 }
@@ -596,7 +596,7 @@ const handleExport = () => {
 }
 
 .info-text {
-  font-size: 9px;
+  font-size: 11px;
   line-height: 2;
   color: var(--text-secondary);
 }
@@ -675,7 +675,7 @@ const handleExport = () => {
   color: white;
   border: 2px solid var(--border-color);
   padding: 6px 12px;
-  font-size: 9px;
+  font-size: 11px;
   cursor: pointer;
   font-family: 'Press Start 2P', monospace;
   box-shadow: 3px 3px 0 var(--border-color);
@@ -693,7 +693,7 @@ const handleExport = () => {
 }
 
 .stat-item {
-  font-size: 9px;
+  font-size: 11px;
   padding: 4px 8px;
   border: 1px solid var(--border-color);
   background: var(--bg-main);
@@ -775,7 +775,7 @@ const handleExport = () => {
 .tag {
   display: inline-block;
   padding: 3px 8px;
-  font-size: 9px;
+  font-size: 11px;
   border: 1px solid;
 }
 
@@ -807,12 +807,12 @@ const handleExport = () => {
 
 .status-alive {
   color: #4CAF50;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .status-unknown {
   color: var(--text-secondary);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .muted {

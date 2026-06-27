@@ -478,7 +478,7 @@ onMounted(() => {
   background: var(--bg-main);
   color: var(--text-primary);
   font-family: 'Press Start 2P', monospace;
-  font-size: 9px;
+  font-size: 11px;
   box-shadow: inset 2px 2px 0 var(--border-color);
   box-sizing: border-box;
   resize: vertical;
@@ -556,7 +556,7 @@ onMounted(() => {
 
 .param-value {
   color: var(--text-secondary);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 /* 速度选项 */
@@ -575,7 +575,7 @@ onMounted(() => {
   border: 2px solid var(--border-color);
   cursor: pointer;
   background: var(--bg-main);
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text-primary);
   transition: all 0.2s;
 }
@@ -698,7 +698,7 @@ onMounted(() => {
   color: white;
   border: 2px solid var(--border-color);
   padding: 6px 12px;
-  font-size: 9px;
+  font-size: 11px;
   cursor: pointer;
   font-family: 'Press Start 2P', monospace;
   box-shadow: 3px 3px 0 var(--border-color);
@@ -812,7 +812,7 @@ onMounted(() => {
 .card-footer {
   padding: 10px 16px;
   border-top: 2px solid var(--border-color);
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text-secondary);
 }
 

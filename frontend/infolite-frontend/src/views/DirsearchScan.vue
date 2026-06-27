@@ -485,7 +485,7 @@ const handleLogout = () => {
 
 .form-label {
   display: block;
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text-secondary);
   margin-bottom: 6px;
 }
@@ -520,7 +520,7 @@ const handleLogout = () => {
 
 .extension-item {
   padding: 5px 10px;
-  font-size: 9px;
+  font-size: 11px;
   border: 2px solid var(--border-color);
   cursor: pointer;
   transition: all 0.2s;
@@ -564,12 +564,12 @@ const handleLogout = () => {
 }
 
 .wordlist-name {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text-primary);
 }
 
 .wordlist-desc {
-  font-size: 8px;
+  font-size: 10px;
   color: var(--text-secondary);
 }
 
@@ -582,7 +582,7 @@ const handleLogout = () => {
 }
 
 .option-label {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text-secondary);
 }
 
@@ -598,7 +598,7 @@ const handleLogout = () => {
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text-primary);
 }
 
@@ -668,7 +668,7 @@ const handleLogout = () => {
 }
 
 .result-info p {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text-secondary);
   margin: 0;
 }
@@ -745,7 +745,7 @@ const handleLogout = () => {
 }
 
 .progress-text {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text-secondary);
 }
 
@@ -802,7 +802,7 @@ const handleLogout = () => {
 }
 
 .result-url {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text-secondary);
   word-break: break-all;
   margin-bottom: 8px;
@@ -812,12 +812,12 @@ const handleLogout = () => {
   display: flex;
   flex-wrap: wrap;
   gap: 15px;
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text-secondary);
 }
 
 .result-redirect {
-  font-size: 9px;
+  font-size: 11px;
   color: #FF9800;
   margin-top: 8px;
   word-break: break-all;
@@ -848,7 +848,7 @@ const handleLogout = () => {
 }
 
 .empty-desc {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text-secondary);
   margin: 0;
   line-height: 1.8;

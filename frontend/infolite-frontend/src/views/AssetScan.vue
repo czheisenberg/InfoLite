@@ -824,7 +824,7 @@ const getCardHeaders = (row) => {
 }
 
 .feature-tag {
-  font-size: 9px;
+  font-size: 11px;
   padding: 4px 10px;
   border: 1px solid var(--border-color);
   color: var(--text-secondary);
