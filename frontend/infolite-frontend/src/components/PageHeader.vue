@@ -2,7 +2,7 @@
   <div class="new-page-header">
     <!-- 顶部标题部分 -->
     <div class="header-top">
-      <h1 class="page-title">InfoLite 网络资产扫描平台</h1>
+      <h1 class="page-title" @click="goHome" title="返回首页">InfoLite 网络资产扫描平台</h1>
 
       <div class="header-actions">
         <span class="user-info" v-if="username">
@@ -76,6 +76,11 @@ const goToNmapScan = () => {
 const goToSubdomainScan = () => {
   window.location.href = '/subdomain-scan'
 }
+
+// 返回首页
+const goHome = () => {
+  window.location.href = '/'
+}
 </script>
 
 <style scoped>
@@ -126,6 +131,12 @@ const goToSubdomainScan = () => {
   margin: 0;
   text-shadow: 2px 2px 0 var(--border-color);
   font-family: 'Press Start 2P', monospace, 'SimHei', 'Microsoft YaHei';
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.header-top .page-title:hover {
+  color: #4CAF50;
 }
 
 /* 主题切换按钮：像素风格 */

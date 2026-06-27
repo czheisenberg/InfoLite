@@ -1,18 +1,11 @@
 <template>
   <div class="nmap-scan-page">
-    <!-- 顶部导航栏 -->
-    <div class="top-nav">
-      <div class="nav-left">
-        <h1 class="nav-title">InfoLite Nmap 扫描</h1>
-      </div>
-      <div class="nav-right">
-        <button class="nav-btn" @click="goToAssetScan">资产扫描</button>
-        <button class="nav-btn" @click="handleLogout">退出</button>
-        <button class="theme-toggle-btn" @click="toggleTheme">
-          {{ theme === 'light' ? '🌙' : '☀️' }}
-        </button>
-      </div>
-    </div>
+    <PageHeader 
+      :username="username"
+      :theme="theme"
+      @logout="handleLogout"
+      @toggle-theme="toggleTheme"
+    />
 
     <div class="main-content">
       <!-- 左侧：参数配置区 -->
@@ -168,6 +161,7 @@
 
 <script setup>
 import { ref, computed, inject, onMounted } from 'vue'
+import PageHeader from '../components/PageHeader.vue'
 import PageFooter from '../components/PageFooter.vue'
 import { nmapCustomScan } from '../api/asset'
 import * as XLSX from 'xlsx'
@@ -176,6 +170,8 @@ const $message = Message
 
 const theme = inject('theme')
 const toggleTheme = inject('toggleTheme')
+
+const username = ref(localStorage.getItem('username') || '')
 
 const targetIp = ref('')
 const portRange = ref('1-1000')
@@ -343,7 +339,9 @@ onMounted(() => {
   min-height: 100vh;
   background-color: var(--bg-main);
   font-family: 'Press Start 2P', monospace, 'SimHei', 'Microsoft YaHei';
-  padding-top: 70px;
+  padding-top: 80px;
+  display: flex;
+  flex-direction: column;
 }
 
 /* 顶部导航 */
@@ -415,6 +413,9 @@ onMounted(() => {
   padding: 20px;
   max-width: 1600px;
   margin: 0 auto;
+  flex: 1;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* 左侧面板 */
